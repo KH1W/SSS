@@ -126,25 +126,31 @@ class GameEngine
                 return $error('หมาป่าเลือกหมาป่าด้วยกันไม่ได้');
             }
         }
-
-        if ($actionType === 'seer_check') {
+            if ($actionType === 'seer_check') {
             if ($actor['role'] !== RoleAssignment::ROLE_SEER) {
-                return $error('เฉพาะ Seer เท่านั้นที่ใช้คำสั่งนี้ได้');
-            }
-
-            $used = $this->snapshot['seer_checks_used'][$actorId] ?? 0;
-            $limit = $this->snapshot['config']['seer_checks_limit'];
-
-            if (!RoleAbility::canSeerCheck(
-                $actor['is_alive'],
-                $target['is_alive'],
-                $used,
-                $limit
-            )) {
-                return $error('Seer ใช้สิทธิ์ตรวจครบแล้ว');
-            }
+            return $error('เฉพาะ Seer เท่านั้นที่ใช้คำสั่งนี้ได้');
         }
 
+        // Seer ตรวจได้เพียง 1 ครั้งต่อคืน
+        if (isset($this->snapshot['night_actions'][$actorId])) {
+            return $error('Seer ได้ตรวจสอบในคืนนี้แล้ว');
+        }
+    
+        $used = $this->snapshot['seer_checks_used'][$actorId] ?? 0;
+        $limit = $this->snapshot['config']['seer_checks_limit'];
+
+        if (!RoleAbility::canSeerCheck(
+            $actor['is_alive'],
+            $target['is_alive'],
+            $used,
+            $limit
+        )) {
+        return $error('Seer ใช้สิทธิ์ตรวจครบแล้ว');
+        }
+
+        $this->snapshot['seer_checks_used'][$actorId] = $used + 1;
+    }
+        
         if ($requiredPhase === 'day_voting') {
             $this->snapshot['day_votes'][$actorId] = $targetId;
         } else {
@@ -153,12 +159,13 @@ class GameEngine
                 'target_id' => $targetId,
             ];
         }
-
+        
         return [
             'status' => 'success',
             'message' => 'บันทึกคำสั่งแล้ว',
         ];
-    }
+    
+}
 
     // เมื่อหมดเวลาใน Phase ปัจจุบัน ให้เปลี่ยนไป Phase ถัดไป
     // public function advancePhase(): array
@@ -367,7 +374,7 @@ class GameEngine
         $used = $this->snapshot['seer_checks_used'] ?? [];
 
         $round = $this->snapshot['current_round'];
-        $limit = $this->snapshot['config']['seer_checks_limit'];
+        // $limit = $this->snapshot['config']['seer_checks_limit'];
 
         foreach (
             $this->snapshot['night_actions'] ?? []
@@ -402,15 +409,7 @@ class GameEngine
             $alreadyResolved = collect($results[$actorUuid] ?? [])
                 ->contains('round', $round);
 
-            if (
-                $alreadyResolved
-                || !RoleAbility::canSeerCheck(
-                    $actor['is_alive'],
-                    $target['is_alive'],
-                    $used[$actorUuid] ?? 0,
-                    $limit
-                )
-            ) {
+           if ($alreadyResolved) {
                 continue;
             }
 
@@ -422,7 +421,7 @@ class GameEngine
                 ),
             ];
 
-            $used[$actorUuid] = ($used[$actorUuid] ?? 0) + 1;
+            // $used[$actorUuid] = ($used[$actorUuid] ?? 0) + 1;
         }
 
         return [

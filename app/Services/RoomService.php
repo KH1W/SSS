@@ -15,6 +15,8 @@ use App\GameLogic\RandomEvent;
 use App\GameLogic\GameConfiguration;
 use App\GameLogic\GameEngine;
 use App\Exceptions\GameSnapshotUnavailableException;
+use App\Events\PhaseChanged;
+use App\Events\RoomUpdated;
 
 
 class RoomService
@@ -50,12 +52,20 @@ class RoomService
             $playerUuid
         );
 
-        return $this->getRoom($room->room_code);
+        $result = $this->getRoom($room->room_code);
+
+        $this->broadcastRoomUpdated($room->room_code);
+
+        return $result;
     }
 
-    public function leave(string $code, string $playerUuid): void
-    {
+    public function leave(
+        string $code,
+        string $playerUuid
+    ): void {
         $this->roomDatabase->leave($code, $playerUuid);
+
+        $this->broadcastRoomUpdated($code);
     }
 
 
@@ -258,15 +268,28 @@ class RoomService
         }
 
         $seerUsed = $game['seer_checks_used'][$playerUuid] ?? 0;
-        $seerLimit = $game['config']['seer_checks_limit'];
+        $seerLimit = $game['config']['seer_checks_limit'] ?? 1;
 
-        $canSeerAct =
+        // ตรวจว่าคืนนี้ Seer ได้ใช้สิทธิ์ไปแล้วหรือยัง
+        $hasSeerActionTonight = isset(
+            $game['night_actions'][$playerUuid]
+        );
+
+            $seerUsed = $game['seer_checks_used'][$playerUuid] ?? 0;
+            $seerLimit = $game['config']['seer_checks_limit'] ?? 1;
+
+            // ตรวจว่า Seer ใช้สิทธิ์ตรวจในคืนนี้ไปแล้วหรือยัง
+            $hasSeerActionTonight = isset(
+            $game['night_actions'][$playerUuid]
+        );
+
+            $canSeerAct =
             $game['status'] === 'in_progress'
             && $game['current_phase'] === 'night'
             && $me['role'] === 'seer'
             && $me['is_alive']
             && !($me['has_left'] ?? false)
-            && ($seerLimit === null || $seerUsed < $seerLimit)
+            && !$hasSeerActionTonight
             && $game['phase_end_time'] !== null
             && now()->lt(
                 \Carbon\CarbonImmutable::parse($game['phase_end_time'])
@@ -353,8 +376,8 @@ class RoomService
                 && $me['is_alive']
                 && $game['phase_end_time'] !== null
                 && now()->lt(
-                    \Carbon\CarbonImmutable::parse($game['phase_end_time'])
-                ),
+                \Carbon\CarbonImmutable::parse($game['phase_end_time'])
+            ),
             'can_werewolf_act' => $canWerewolfAct,
             'werewolf_targets' => $werewolfTargets,
             'can_seer_act' => $canSeerAct,
@@ -725,6 +748,7 @@ class RoomService
                         ->toIso8601String();
 
                     $game['night_actions'] = [];
+                    $game['seer_checks_used'] = [];
                     $room['status'] = $game['current_phase'];
 
                     $game['night_event'] = [
@@ -757,6 +781,20 @@ class RoomService
         DB::transaction(function () use ($room, $game, $voteData) {
             $record = Room::where('room_code', $room['code'])
                 ->firstOrFail();
+
+            $previousGame = $record->game_snapshot;
+
+            $previousState = is_array($previousGame)
+                ? $this->phaseBroadcastState($previousGame)
+                : null;
+
+            $nextState = $this->phaseBroadcastState($game);
+
+            $phaseChanged = $previousState !== $nextState;
+
+            $membershipChanged = is_array($previousGame)
+                && $this->roomMembershipState($previousGame)
+                    !== $this->roomMembershipState($game);
 
             $record->update([
                 'game_uuid' => $game['game_uuid'],
@@ -804,6 +842,23 @@ class RoomService
                     ]
                 );
             }
+
+            if ($membershipChanged) {
+                $this->broadcastRoomUpdated($room['code']);
+            }
+
+            if ($phaseChanged) {
+                $roomCode = $room['code'];
+
+                DB::afterCommit(function () use ($roomCode, $nextState) {
+                    try {
+                        PhaseChanged::dispatch($roomCode, $nextState);
+                    } catch (\Throwable $exception) {
+                        report($exception);
+                    }
+                });
+            }
+
         });
 
 
@@ -1395,6 +1450,7 @@ class RoomService
                     ]);
                 });
             });
+        $this->broadcastRoomUpdated($code);
     }
 
     public function finishDiscussion(
@@ -1455,6 +1511,42 @@ class RoomService
                 $this->resolveNight($code, null, $expectedEndTime);
                 break;
         }
+    }
+
+
+    // websocket
+    private function phaseBroadcastState(array $game): array
+    {
+        return [
+            'game_uuid' => $game['game_uuid'],
+            'status' => $game['status'],
+            'phase' => $game['current_phase'],
+            'round' => $game['current_round'],
+            'ballot_number' => $game['ballot_number'] ?? 1,
+            'phase_end_time' => $game['phase_end_time'],
+        ];
+    }
+
+    private function broadcastRoomUpdated(string $code): void
+    {
+        DB::afterCommit(function () use ($code) {
+            try {
+                RoomUpdated::dispatch(strtoupper(trim($code)));
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        });
+    }
+
+    private function roomMembershipState(array $game): array
+    {
+        return array_map(
+            fn (array $player) => [
+                'player_uuid' => $player['player_uuid'],
+                'has_left' => $player['has_left'] ?? false,
+            ],
+            $game['players']
+        );
     }
 
 }

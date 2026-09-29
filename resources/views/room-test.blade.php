@@ -15,6 +15,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&display=swap" rel="stylesheet">
 
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&display=swap');
+
     body {
         min-height: 100vh;
         font-family: 'Kanit', sans-serif;
@@ -25,6 +27,27 @@
                 #080714 50%);
         background-color: #080714;
         background-attachment: fixed;
+    }
+
+    h1 {
+        font-family: 'Cinzel', serif;
+    }
+
+    body::after {
+        content: '';
+        position: fixed;
+        right: 6%;
+        top: 45px;
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: #ffd66b;
+        box-shadow:
+            0 0 20px rgba(255, 214, 107, .65),
+            0 0 60px rgba(255, 166, 0, .35);
+        opacity: .95;
+        pointer-events: none;
+        z-index: 0;
     }
 
     .smoke-wrapper {
@@ -147,6 +170,20 @@
         background-color: rgba(8, 7, 20, 0.25);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .room-section form {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .room-section form>button[type="submit"] {
+        margin-top: auto;
+        width: 100%;
+        min-height: 58px;
     }
 
     .section-title {
@@ -159,11 +196,13 @@
 
     .form-label {
         color: #e2e8f0;
-        font-weight: 600;
+        font-weight: 500;
     }
 
     .form-control-custom,
-    .form-select-custom {
+    .form-select-custom,
+    .form-control-customm,
+    .form-select-customm {
         background-color: rgba(0, 0, 0, 0.3) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         color: #ffffff !important;
@@ -172,19 +211,31 @@
         transition: all 0.2s ease-in-out;
     }
 
-    .form-control-custom::placeholder {
+    .form-control-custom::placeholder,
+    .form-control-customm::placeholder {
         color: #6c757d;
+    }
+
+    .form-control-customm:hover,
+    .form-select-customm:hover {
+        border-color: #2563eb !important;
+    }
+
+    .form-control-customm:focus,
+    .form-select-customm:focus {
+        border-color: #2563eb !important;
+        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.3) !important;
     }
 
     .form-control-custom:hover,
     .form-select-custom:hover {
-        border-color: #2563eb !important;
+        border-color: #9333ea !important;
     }
 
     .form-control-custom:focus,
     .form-select-custom:focus {
-        border-color: #2563eb !important;
-        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.3) !important;
+        border-color: #9333ea !important;
+        box-shadow: 0 0 0 0.25rem rgba(139, 92, 246, 0.3) !important;
     }
 
     .form-select-custom option {
@@ -269,6 +320,235 @@
         color: #c084fc;
     }
 
+    .required-markk {
+        color: #2563eb;
+    }
+
+    /* leave room modal */
+
+    .leave-room-button {
+        width: 100%;
+        padding: 14px 20px;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        border-radius: 14px;
+        background: rgba(127, 29, 29, 0.2);
+        color: #fca5a5;
+        font-family: 'Kanit', sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .leave-room-button:hover {
+        border-color: rgba(239, 68, 68, 0.65);
+        background: rgba(127, 29, 29, 0.35);
+        color: #fecaca;
+    }
+
+    .leave-room-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+
+        display: none;
+        align-items: center;
+        justify-content: center;
+
+        padding: 20px;
+
+        background: rgba(3, 3, 15, 0.78);
+        backdrop-filter: blur(8px);
+    }
+
+    .leave-room-modal.show {
+        display: flex;
+    }
+
+    .leave-room-modal-card {
+        width: min(430px, 100%);
+
+        padding: 30px;
+
+        border: 1px solid rgba(168, 85, 247, 0.25);
+        border-radius: 22px;
+
+        background:
+            linear-gradient(145deg,
+                rgba(30, 27, 75, 0.98),
+                rgba(8, 7, 20, 0.98));
+
+        box-shadow:
+            0 25px 80px rgba(0, 0, 0, 0.55),
+            0 0 40px rgba(124, 58, 237, 0.12);
+
+        text-align: center;
+    }
+
+    .leave-room-modal-icon {
+        width: 58px;
+        height: 58px;
+
+        margin: 0 auto 18px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 50%;
+
+        background: rgba(127, 29, 29, 0.2);
+
+        color: #fca5a5;
+        font-size: 26px;
+    }
+
+    .leave-room-modal-title {
+        margin: 0 0 10px;
+
+        color: #f8fafc;
+
+        font-family: 'Kanit', sans-serif;
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+    .leave-room-modal-text {
+        margin: 0 auto 25px;
+
+        color: #94a3b8;
+
+        font-family: 'Kanit', sans-serif;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .leave-room-modal-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .leave-room-modal-cancel,
+    .leave-room-modal-confirm {
+        flex: 1;
+
+        padding: 11px 16px;
+
+        border-radius: 12px;
+
+        font-family: 'Kanit', sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .leave-room-modal-cancel {
+        border: 1px solid rgba(100, 116, 139, 0.3);
+        background: rgba(15, 23, 42, 0.7);
+        color: #94a3b8;
+    }
+
+    .leave-room-modal-cancel:hover {
+        border-color: rgba(148, 163, 184, 0.5);
+        background: rgba(30, 41, 59, 0.8);
+        color: #e2e8f0;
+    }
+
+    .leave-room-modal-confirm {
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        background: rgba(127, 29, 29, 0.7);
+        color: #fecaca;
+    }
+
+    .leave-room-modal-confirm:hover {
+        border-color: rgba(239, 68, 68, 0.7);
+        background: rgba(153, 27, 27, 0.85);
+        color: #ffffff;
+    }
+
+    .difficulty-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        width: 100%;
+        min-height: 30px;
+        padding: 15px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.75);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .difficulty-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .difficulty-card:hover {
+        border-color: #a855f7;
+        background: rgba(30, 27, 75, 0.9);
+        transform: translateY(-2px);
+    }
+
+    .difficulty-card input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .difficulty-card:has(input:checked) {
+        border-color: #a855f7;
+        background: rgba(88, 28, 135, 0.3);
+        box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.25);
+    }
+
+
+    .difficulty-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .difficulty-title {
+        color: #f8fafc;
+        font-size: 16px;
+        font-weight: 700;
+    }
+
+    .difficulty-description {
+        color: #94a3b8;
+        font-size: 13px;
+    }
+
+    .difficulty-check {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 50%;
+        color: transparent;
+        font-size: 13px;
+    }
+
+    .difficulty-card:has(input:checked) .difficulty-check {
+        border-color: #a855f7;
+        background: #a855f7;
+        color: #fff;
+    }
+
     @media (max-width: 768px) {
         .room-grid {
             grid-template-columns: 1fr;
@@ -276,6 +556,12 @@
 
         .room-section {
             padding: 24px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .difficulty-list {
+            grid-template-columns: 1fr;
         }
     }
     </style>
@@ -379,22 +665,51 @@
 
                         <div class="mb-4">
 
-                            <label for="difficulty" class="form-label">
+                            <div class="form-label">
                                 ระดับความยาก
                                 <span class="required-mark">*</span>
-                            </label>
+                            </div>
 
-                            <select id="difficulty" name="difficulty" required class="form-select form-select-custom">
+                            <div class="difficulty-list">
 
-                                <option value="easy" @selected(old('difficulty', 'easy' )==='easy' )>
-                                    Easy — เปิดเผย Role ของคนตาย
-                                </option>
+                                <label class="difficulty-card">
+                                    <input type="radio" name="difficulty" value="easy" checked>
 
-                                <option value="hard" @selected(old('difficulty')==='hard' )>
-                                    Hard — ไม่เปิดเผย Role ของคนตาย
-                                </option>
+                                    <span class="difficulty-info">
+                                        <span class="difficulty-title">
+                                            Easy
+                                        </span>
 
-                            </select>
+                                        <span class="difficulty-description">
+                                            เปิดเผย Role ของคนตาย
+                                        </span>
+                                    </span>
+
+                                    <span class="difficulty-check">
+                                        ✓
+                                    </span>
+                                </label>
+
+
+                                <label class="difficulty-card">
+                                    <input type="radio" name="difficulty" value="hard">
+
+                                    <span class="difficulty-info">
+                                        <span class="difficulty-title">
+                                            Hard
+                                        </span>
+
+                                        <span class="difficulty-description">
+                                            ไม่เปิดเผย Role ของคนตาย
+                                        </span>
+                                    </span>
+
+                                    <span class="difficulty-check">
+                                        ✓
+                                    </span>
+                                </label>
+
+                            </div>
 
                         </div>
 
@@ -426,12 +741,12 @@
 
                             <label for="player_name" class="form-label">
                                 ชื่อของคุณ
-                                <span class="required-mark">*</span>
+                                <span class="required-markk">*</span>
                             </label>
 
                             <input id="player_name" type="text" name="player_name" value="{{ old('player_name') }}"
                                 maxlength="45" required autocomplete="name" placeholder="กรอกชื่อของคุณ"
-                                class="form-control form-control-custom">
+                                class="form-control form-control-customm">
 
                         </div>
 
@@ -439,12 +754,12 @@
 
                             <label for="code" class="form-label">
                                 รหัสห้อง
-                                <span class="required-mark">*</span>
+                                <span class="required-markk">*</span>
                             </label>
 
                             <input id="code" type="text" name="code" value="{{ old('code') }}" minlength="6"
                                 maxlength="6" pattern="[A-Za-z0-9]{6}" required autocomplete="off" placeholder="ABC123"
-                                class="form-control form-control-custom text-uppercase">
+                                class="form-control form-control-customm text-uppercase">
 
                         </div>
 
@@ -463,16 +778,13 @@
         @if ($currentRoom !== null)
         <div class="text-center mt-4">
 
-            <form method="POST" action="{{ route('games.leave-unavailable', [
-                    'code' => $currentRoom['code'],
-                ]) }}" onsubmit="return confirm('ออกจากห้องที่ค้างถาวรหรือไม่?')">
-
+            <form id="leave-room-form" method="POST"
+                action="{{ route('games.leave-unavailable', ['code' => $currentRoom['code']]) }}">
                 @csrf
 
-                <button type="submit" class="btn btn-cleanup">
-                    ออกจากห้องที่ข้อมูลเกมใช้ไม่ได้
+                <button type="button" id="open-leave-room-modal" class="leave-room-button">
+                    ออกจากห้องที่ค้าง
                 </button>
-
             </form>
 
         </div>
@@ -480,8 +792,86 @@
 
     </main>
 
+    <div id="leave-room-modal" class="leave-room-modal" aria-hidden="true">
+        <div class="leave-room-modal-card" role="dialog" aria-modal="true" aria-labelledby="leave-room-modal-title">
+
+            <div class="leave-room-modal-icon">
+                ↪
+            </div>
+
+            <h2 id="leave-room-modal-title" class="leave-room-modal-title">
+                ออกจากห้องที่ค้าง?
+            </h2>
+
+            <p class="leave-room-modal-text">
+                การออกครั้งนี้จะเป็นการออกจากห้องอย่างถาวร
+            </p>
+
+            <div class="leave-room-modal-actions">
+
+                <button type="button" id="cancel-leave-room" class="leave-room-modal-cancel">
+                    ยกเลิก
+                </button>
+
+                <button type="button" id="confirm-leave-room" class="leave-room-modal-confirm">
+                    ออกจากห้อง
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("leave-room-form");
+    const openButton = document.getElementById("open-leave-room-modal");
+    const modal = document.getElementById("leave-room-modal");
+    const cancelButton = document.getElementById("cancel-leave-room");
+    const confirmButton = document.getElementById("confirm-leave-room");
+
+    if (!form || !openButton || !modal || !cancelButton || !confirmButton) {
+        return;
+    }
+
+    function openModal() {
+        modal.classList.add("show");
+        modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeModal() {
+        modal.classList.remove("show");
+        modal.setAttribute("aria-hidden", "true");
+    }
+
+    openButton.addEventListener("click", () => {
+        openModal();
+    });
+
+    cancelButton.addEventListener("click", () => {
+        closeModal();
+    });
+
+    confirmButton.addEventListener("click", () => {
+        form.submit();
+    });
+
+    modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            closeModal();
+        }
+    });
+});
+</script>
 
 </html>

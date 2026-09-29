@@ -3,9 +3,13 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="room-code" content="{{ $room['code'] }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Player List - Ware Woof</title>
+
+    @vite(['resources/js/app.js'])
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -15,6 +19,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&display=swap" rel="stylesheet">
 
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&display=swap');
+
     body {
         min-height: 100vh;
         font-family: 'Kanit', sans-serif;
@@ -25,6 +31,27 @@
                 #080714 50%);
         background-color: #080714;
         background-attachment: fixed;
+    }
+
+    h1 {
+        font-family: 'Cinzel', serif;
+    }
+
+    body::after {
+        content: '';
+        position: fixed;
+        right: 6%;
+        top: 45px;
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: #ffd66b;
+        box-shadow:
+            0 0 20px rgba(255, 214, 107, .65),
+            0 0 60px rgba(255, 166, 0, .35);
+        opacity: .95;
+        pointer-events: none;
+        z-index: 0;
     }
 
     .smoke-wrapper {
@@ -188,11 +215,17 @@
     }
 
     .avatar-host {
-        background: linear-gradient(135deg, #9333ea, #c084fc);
+        background:
+            linear-gradient(135deg,
+                #4c1d95,
+                #9333ea);
     }
 
     .avatar-player {
-        background: linear-gradient(135deg, #2563eb, #60a5fa);
+        background:
+            linear-gradient(135deg,
+                #172554,
+                #2563eb);
     }
 
     .player-name {
@@ -200,8 +233,15 @@
     }
 
     .player-you {
-        color: #c084fc;
         font-size: 0.85rem;
+    }
+
+    .player-you.purple {
+        color: #c084fc;
+    }
+
+    .player-you.blue {
+        color: #60a5fa;
     }
 
     .host-badge {
@@ -216,6 +256,24 @@
 
     .waiting-text {
         color: #94a3b8;
+    }
+
+    .btn-secondary-game {
+        min-height: 38px;
+        padding: 8px 17px;
+        border-radius: 9px;
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid rgba(248, 113, 113, 0.4);
+        color: #fca5a5;
+        font-family: 'Kanit', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .btn-leave {
+        color: #fca5a5;
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(248, 113, 113, 0.6);
     }
 
     .btn-leave {
@@ -285,14 +343,13 @@
     .game-session a:hover {
         color: #d8b4fe;
     }
-    </style>
 
-    <!-- {{-- refresh lobby every 2 seconds --}}
-    <script>
-    setInterval(function() {
-        window.location.reload();
-    }, 2000);
-    </script> -->
+    .realtime-status {
+        font-size: 0.8rem;
+        opacity: 0.75;
+        margin-bottom: 0.5rem;
+    }
+    </style>
 
 </head>
 
@@ -310,6 +367,10 @@
             <h1 class="display-5 page-title text-uppercase">
                 PLAYER <span>LIST</span>
             </h1>
+
+            <div id="realtime-status" class="realtime-status" aria-live="polite">
+                กำลังเชื่อมต่อ...
+            </div>
 
             <p class="page-subtitle mt-3 mb-0">
                 รอผู้เล่นเข้าร่วมก่อนเริ่มเกม
@@ -406,12 +467,8 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
 
                     <h2 class="h5 fw-bold mb-0">
-                        Players
+                        ผู้เล่น
                     </h2>
-
-                    <a href="{{ route('rooms.show', ['code' => $room['code']]) }}" class="btn-refresh">
-                        รีเฟรช
-                    </a>
 
                 </div>
 
@@ -426,11 +483,11 @@
                             <div class="d-flex align-items-center gap-3">
 
                                 <div class="avatar {{
-                                            $player['player_uuid'] === $room['host_uuid']
-                                                ? 'avatar-host'
-                                                : 'avatar-player'
-                                        }}">
-                                    {{ strtoupper(substr($player['name'], 0, 1)) }}
+                                    $loop->index % 2 === 0
+                                    ? 'avatar-host'
+                                    : 'avatar-player'
+                                }}">
+                                    {{ mb_strtoupper(mb_substr($player['name'], 0, 1, 'UTF-8'), 'UTF-8') }}
                                 </div>
 
                                 <div>
@@ -439,11 +496,13 @@
 
                                         {{ $player['name'] }}
 
-                                        @if (
-                                        $player['player_uuid'] === session('player_uuid')
-                                        )
+                                        @if ($player['player_uuid'] === session('player_uuid'))
 
-                                        <span class="player-you">
+                                        <span class="player-you {{
+                                            $loop->index % 2 === 0
+                                            ? 'purple'
+                                            : 'blue'
+                                        }}">
                                             (คุณ)
                                         </span>
 

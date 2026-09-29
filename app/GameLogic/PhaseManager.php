@@ -56,14 +56,14 @@ class PhaseManager
     // ประมวลผลเมื่อจบ Night Phase
     public function resolveNight(ActionQueue $queue, array &$playersData): array
     {
-        // 1. สรุปผลหมาป่าฆ่าคน
+        // สรุปผลหมาป่าฆ่าคน
         $killedTargetId = RoleAbility::resolveNightKill($queue->getWerewolfVotes());
         
         if ($killedTargetId && isset($playersData[$killedTargetId])) {
             $playersData[$killedTargetId]['is_alive'] = false;
         }
 
-        // 2. เช็ค Win Condition หลังจบ Night
+        // เช็ค Win Condition หลังจบ Night
         $winner = RoleAbility::checkWinCondition($playersData);
 
         return [
@@ -75,7 +75,7 @@ class PhaseManager
     // ประมวลผลเมื่อจบ Day Voting Phase
     public function resolveDayVoting(ActionQueue $queue, array &$playersData): array
     {
-        // 1. สรุปผลโหวตแขวนคอ
+        // สรุปผลโหวตแขวนคอ
         $executedTargetId = RoleAbility::resolveDayVote(
             $queue->getDayVotes(),
             $this->config['tie_breaking'] ?? 'no_death'
@@ -85,7 +85,7 @@ class PhaseManager
             $playersData[$executedTargetId]['is_alive'] = false;
         }
 
-        // 2. เช็ค Win Condition หลังจบ Day Voting
+        // เช็ค Win Condition หลังจบ Day Voting
         $winner = RoleAbility::checkWinCondition($playersData);
 
         return [

@@ -4,7 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="room-code" content="{{ $game['room_code'] }}">
+    <meta name="player-name"
+        content="{{ collect($game['players'])->first(fn ($player) => ($player['player_uuid'] ?? null) === session('player_uuid'))['name'] ?? '' }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    @vite(['resources/js/app.js'])
 
     <title>Werewolf Online - {{ $game['room_code'] }}</title>
 
@@ -15,6 +20,8 @@
         rel="stylesheet">
 
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&display=swap');
+
     * {
         box-sizing: border-box;
     }
@@ -210,6 +217,7 @@
         font-weight: 800;
         line-height: 1;
         letter-spacing: .3px;
+        font-family: 'Cinzel', serif;
     }
 
     .brand-subtitle {
@@ -358,7 +366,7 @@
     .phase-title {
         margin-top: 2px;
         font-size: 20px;
-        font-weight: 800;
+        font-weight: 700;
     }
 
     .phase-round {
@@ -385,7 +393,7 @@
     .timer {
         margin-top: 1px;
         color: #d8b4fe;
-        font-family: 'Cinzel', serif;
+        font-family: 'Kanit', sans-serif;
         font-size: 19px;
         font-weight: 800;
     }
@@ -455,8 +463,8 @@
 
     .section-title {
         margin: 0;
-        font-size: 16px;
-        font-weight: 800;
+        font-size: 14px;
+        font-weight: 700;
     }
 
     .section-count {
@@ -566,6 +574,7 @@
         font-family: 'Kanit', sans-serif;
         font-size: 12px;
         font-weight: 700;
+        margin-bottom: 5px;
     }
 
     .btn-game:hover {
@@ -577,21 +586,40 @@
                 #c084fc);
     }
 
+    .btn-gamee {
+        min-height: 38px;
+        padding: 8px 17px;
+        border: 1px solid rgba(168, 85, 247, 0.35);
+        border-radius: 10px;
+        background: rgba(76, 29, 149, 0.18);
+        color: #c084fc;
+        font-family: 'Kanit', sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .btn-gamee:hover {
+        background: rgba(76, 29, 149, 0.3);
+        border-color: rgba(192, 132, 252, 0.5);
+        color: #d8b4fe;
+    }
+
     .btn-secondary-game {
         min-height: 38px;
         padding: 8px 17px;
-        border: 1px solid rgba(148, 163, 184, .18);
         border-radius: 9px;
-        background: rgba(15, 23, 42, .7);
-        color: #b8bbca;
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid rgba(248, 113, 113, 0.4);
+        color: #fca5a5;
         font-family: 'Kanit', sans-serif;
         font-size: 12px;
         font-weight: 600;
     }
 
     .btn-secondary-game:hover {
-        color: white;
-        border-color: rgba(168, 85, 247, .35);
+        color: #fca5a5;
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(248, 113, 113, 0.6);
     }
 
     .action-panel {
@@ -605,7 +633,7 @@
     .action-title {
         margin-bottom: 10px;
         font-size: 14px;
-        font-weight: 800;
+        font-weight: 700;
     }
 
     .game-select {
@@ -642,7 +670,7 @@
         margin-bottom: 7px;
         color: #99f6e4;
         font-size: 14px;
-        font-weight: 800;
+        font-weight: 700;
     }
 
     .winner-panel {
@@ -668,9 +696,9 @@
     .winner-title {
         margin-top: 5px;
         color: #fde68a;
-        font-family: 'Cinzel', serif;
+        font-family: 'Kanit', sans-serif;
         font-size: 28px;
-        font-weight: 800;
+        font-weight: 700;
     }
 
     .event-panel {
@@ -684,7 +712,7 @@
     .event-title {
         color: #fbbf24;
         font-size: 14px;
-        font-weight: 800;
+        font-weight: 700;
     }
 
     .event-description {
@@ -695,6 +723,7 @@
     }
 
     .alert-game {
+        margin-top: 12px;
         margin-bottom: 12px;
         padding: 10px 12px;
         border: 1px solid rgba(168, 85, 247, .18);
@@ -766,15 +795,18 @@
         background: rgba(76, 29, 149, .08);
     }
 
-
     .chat-toolbar {
         padding: 10px 13px;
         border-bottom: 1px solid rgba(100, 116, 139, .12);
         background: rgba(5, 8, 20, .35);
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .chat-channels {
         display: flex;
+        align-items: center;
         gap: 5px;
         overflow-x: auto;
         scrollbar-width: none;
@@ -784,7 +816,8 @@
         display: none;
     }
 
-    .chat-channel {
+    .chat-channel,
+    .chat-refresh {
         flex: 0 0 auto;
         padding: 5px 9px;
         border: 1px solid rgba(100, 116, 139, .18);
@@ -798,7 +831,9 @@
     }
 
     .chat-channel:hover,
-    .chat-channel.active {
+    .chat-channel.active,
+    .chat-refresh:hover,
+    .chat-refresh.active {
         border-color: rgba(168, 85, 247, .35);
         background: rgba(76, 29, 149, .2);
         color: #d8b4fe;
@@ -845,11 +880,70 @@
     }
 
     .chat-message-row {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
         margin-bottom: 10px;
+    }
+
+    .chat-message-row.mine {
+        align-items: flex-end;
+    }
+
+    .chat-message-row:not(.mine) {
+        align-items: flex-start;
+    }
+
+    .chat-message-meta {
+        display: flex;
+        align-items: center;
+        margin-bottom: 3px;
+        padding: 0 3px;
+    }
+
+    .chat-message-name {
+        max-width: 155px;
+        overflow: hidden;
+        color: #c4b5fd;
+        font-size: 9px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .chat-message-bubble {
+        max-width: 82%;
+        padding: 8px 11px;
+        border: 1px solid rgba(100, 116, 139, .12);
+        border-radius: 12px;
+        background: rgba(15, 23, 42, .65);
+        color: #c4c7d5;
+        font-size: 10px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+    }
+
+    .chat-message-row:not(.mine) .chat-message-bubble {
+        border-bottom-left-radius: 4px;
+    }
+
+    .chat-message-row.mine .chat-message-bubble {
+        border-color: rgba(168, 85, 247, .25);
+        border-bottom-right-radius: 4px;
+        background: linear-gradient(135deg,
+                rgba(109, 40, 217, .75),
+                rgba(168, 85, 247, .65));
+        color: #ffffff;
     }
 
     .chat-message-row:last-child {
         margin-bottom: 0;
+    }
+
+    .chat-messages {
+        display: flex;
+        flex-direction: column;
     }
 
     .chat-message-meta {
@@ -963,13 +1057,152 @@
         cursor: not-allowed;
     }
 
-    @media (max-width: 900px) {
-        .side-panel {
-            display: block;
+    .realtime-status {
+        font-size: 0.8rem;
+        opacity: 0.75;
+        margin-bottom: 0.5rem;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .brand-text {
+        min-width: 0;
+    }
+
+    .brand-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .brand-subtitle {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    #realtime-status {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .realtime-status::before {
+        content: "";
+        display: inline-block;
+
+        width: 8px;
+        height: 8px;
+
+        margin-right: 8px;
+
+        border-radius: 50%;
+        background: #facc15;
+
+        transition: background-color 0.2s ease;
+    }
+
+    .realtime-status.status-connected::before {
+        background: #22c55e;
+    }
+
+    .realtime-status.status-connecting::before {
+        background: #facc15;
+    }
+
+    .realtime-status.status-disconnected::before {
+        background: #ef4444;
+    }
+
+
+    /* มือถือ */
+    @media (max-width: 600px) {
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .chat-messages {
-            height: 280px;
+        .brand {
+            flex: 1;
+            min-width: 0;
+        }
+
+        #realtime-status {
+            /* ยกเลิกตำแหน่งกลางของ desktop */
+            position: static;
+            transform: none;
+
+            /* ทำเป็นจุด */
+            flex: 0 0 10px;
+            width: 10px;
+            height: 10px;
+            min-width: 10px;
+
+            padding: 0;
+            margin: 0;
+
+            border-radius: 50%;
+            font-size: 0;
+            background: transparent;
+            border: none;
+        }
+
+        #realtime-status::before {
+            content: "";
+            display: block;
+
+            width: 10px;
+            height: 10px;
+
+            border-radius: 50%;
+            background: #facc15;
+
+            transition: background-color 0.2s ease;
+        }
+
+        /* connected */
+        #realtime-status.status-connected::before {
+            background: #22c55e;
+        }
+
+        /* connecting */
+        #realtime-status.status-connecting::before {
+            background: #facc15;
+        }
+
+        /* disconnected / unavailable / failed */
+        #realtime-status.status-disconnected::before {
+            background: #ef4444;
+        }
+
+        /* ปุ่มรีเฟรช */
+        .topbar>div:last-child {
+            flex-shrink: 0;
         }
     }
 
@@ -983,6 +1216,7 @@
         font-size: 10px;
         text-align: center;
     }
+
 
     .footer-actions {
         display: flex;
@@ -1005,6 +1239,7 @@
 
     .section-card {
         margin-top: 14px;
+        margin-bottom: 14px;
     }
 
     .action-card {
@@ -1035,14 +1270,15 @@
     }
 
     .action-description {
-        margin-bottom: 12px;
+        margin-top: 14px;
+        margin-bottom: 14px;
         color: #8589a3;
-        font-size: 11px;
+        font-size: 14px;
         line-height: 1.6;
     }
 
     .form-group {
-        margin-bottom: 12px;
+        margin-bottom: 14px;
     }
 
     .vote-button {
@@ -1124,14 +1360,206 @@
         align-items: center;
     }
 
+    .game-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+
+        display: none;
+        align-items: center;
+        justify-content: center;
+
+        padding: 20px;
+
+        background: rgba(3, 3, 15, 0.78);
+        backdrop-filter: blur(8px);
+    }
+
+    .game-modal.show {
+        display: flex;
+    }
+
+    .game-modal-card {
+        width: min(420px, 100%);
+
+        padding: 30px;
+
+        text-align: center;
+
+        background: linear-gradient(145deg,
+                rgba(30, 27, 75, 0.98),
+                rgba(8, 7, 20, 0.98));
+
+        border: 1px solid rgba(168, 85, 247, 0.35);
+        border-radius: 20px;
+
+        box-shadow:
+            0 25px 80px rgba(0, 0, 0, 0.6),
+            0 0 40px rgba(124, 58, 237, 0.2);
+
+        animation: modal-pop 0.2s ease-out;
+    }
+
+    .game-modal-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.12);
+        font-size: 30px;
+    }
+
+    .game-modal-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .game-modal-text {
+        margin: 12px 0 24px;
+        color: #a7a8b8;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .game-modal-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-leave {
+        color: #fca5a5;
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(248, 113, 113, 0.6);
+    }
+
+    .btn-leave {
+        background-color: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        border-radius: 0.75rem;
+        padding: 0.7rem 1.2rem;
+        font-weight: 700;
+    }
+
+    .btn-leave:hover {
+        background-color: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+    }
+
+
+    .game-modal-btn {
+        flex: 1;
+        padding: 11px 18px;
+        border: 0;
+        border-radius: 10px;
+        font-family: 'Kanit', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .game-modal-btn-cancel {
+        border: 1px solid rgba(100, 116, 139, 0.3);
+        background: rgba(15, 23, 42, 0.7);
+        color: #94a3b8;
+    }
+
+    .game-modal-btn-cancel:hover {
+        border-color: rgba(148, 163, 184, 0.5);
+        background: rgba(30, 41, 59, 0.8);
+        color: #e2e8f0;
+    }
+
+    .game-modal-btn-confirm {
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        background: rgba(127, 29, 29, 0.7);
+        color: #fecaca;
+    }
+
+    .game-modal-btn-confirm:hover {
+        border-color: rgba(239, 68, 68, 0.7);
+        background: rgba(153, 27, 27, 0.85);
+        color: #ffffff;
+    }
+
+    .even {
+        font-size: 14px;
+    }
+
+    .player-you {
+        font-size: 0.85rem;
+    }
+
+    .player-you.purple {
+        color: #c084fc;
+    }
+
+    .player-you.blue {
+        color: #60a5fa;
+    }
+
+    @keyframes modal-pop {
+        from {
+            opacity: 0;
+            transform: scale(0.94) translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    @media (max-width: 500px) {
+        .game-modal-card {
+            padding: 24px;
+        }
+
+        .game-modal-actions {
+            flex-direction: column;
+        }
+    }
+
     @media (max-width: 900px) {
         .game-layout {
             grid-template-columns: 1fr;
         }
 
         .side-panel {
-            display: none;
+            display: block;
         }
+
+        .chat-messages {
+            height: 280px;
+        }
+    }
+
+    .game-select {
+        width: 100%;
+        background-color: #0b1020 !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        color: #ffffff !important;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        outline: none;
+        color-scheme: dark;
+    }
+
+    .game-select:focus {
+        border-color: #9333ea !important;
+        box-shadow: 0 0 0 0.2rem rgba(147, 51, 234, 0.2) !important;
+    }
+
+    .game-select option {
+        background-color: #111126 !important;
+        color: #ffffff !important;
     }
 
     @media (max-width: 640px) {
@@ -1175,7 +1603,209 @@
             right: 4%;
         }
     }
+
+    .seer-target-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .seer-target-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 14px;
+        border: 1px solid #242844;
+        border-radius: 14px;
+        background: #0d1022;
+        color: #fff;
+        cursor: pointer;
+        text-align: left;
+        transition: 0.2s ease;
+    }
+
+    .seer-target-card:hover {
+        border-color: #8b3dff;
+        transform: translateY(-1px);
+    }
+
+    .seer-target-card.selected {
+        border-color: #a855f7;
+        background: #21133d;
+        box-shadow: 0 0 0 1px #a855f7;
+    }
+
+    .seer-target-card:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .seer-target-avatar {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: #702de0;
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .seer-target-name {
+        font-weight: 600;
+    }
+
+    .seer-target-check {
+        display: none;
+        margin-left: auto;
+        color: #c084fc;
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+    .seer-target-card.selected .seer-target-check {
+        display: block;
+    }
+
+    @media (max-width: 600px) {
+        .seer-target-list {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .vote-target-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+
+    .vote-target-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.75);
+        color: #fff;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .vote-target-card:hover {
+        border-color: #a855f7;
+        background: rgba(30, 27, 75, 0.9);
+        transform: translateY(-2px);
+    }
+
+    .vote-target-card.selected {
+        border-color: #a855f7;
+        background: rgba(88, 28, 135, 0.3);
+        box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.25);
+    }
+
+    .vote-target-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: linear-gradient(135deg,
+                #7c3aed,
+                #a855f7);
+
+        color: white;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .vote-target-info {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+    }
+
+    .vote-target-name {
+        color: #f8fafc;
+        font-size: 15px;
+        font-weight: 700;
+    }
+
+    .vote-target-name small {
+        color: #c084fc;
+        font-size: 12px;
+    }
+
+    .vote-target-status {
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+    .vote-target-check {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 50%;
+        color: transparent;
+        font-size: 13px;
+    }
+
+    .vote-target-card.selected .vote-target-check {
+        border-color: #a855f7;
+        background: #a855f7;
+        color: white;
+    }
+
+    .vote-target-card:nth-child(odd) .vote-target-avatar {
+        background:
+            linear-gradient(135deg,
+                #4c1d95,
+                #9333ea);
+    }
+
+    .vote-target-card:nth-child(even) .vote-target-avatar {
+        background: linear-gradient(135deg,
+                #172554,
+                #2563eb);
+    }
+
+    .vote-target-card.selected:nth-child(odd) .vote-target-avatar {
+        background: linear-gradient(135deg,
+                #4c1d95,
+                #9333ea);
+    }
+
+    .vote-target-card.selected:nth-child(even) .vote-target-avatar {
+        background: linear-gradient(135deg,
+                #172554,
+                #2563eb);
+    }
+
+    @media (max-width: 700px) {
+        .vote-target-list {
+            grid-template-columns: 1fr;
+        }
+    }
     </style>
+
+
 </head>
 
 <body>
@@ -1197,15 +1827,24 @@
                 </div>
 
                 <div class="brand-subtitle">
-                    REAL-TIME SOCIAL DEDUCTION
+                    มนุษย์หมาป่าออนไลน์
                 </div>
             </div>
         </div>
 
-        <div>
-            <a href="{{ route('games.show', ['code' => $game['room_code']]) }}" class="top-pill text-decoration-none">
-                รีเฟรช
-            </a>
+        <div class="header-actions">
+
+            <div id="realtime-status" class="realtime-status top-pill text-decoration-none" aria-live="polite">
+                กำลังเชื่อมต่อ...
+            </div>
+
+            <div>
+                <a href="{{ route('games.show', ['code' => $game['room_code']]) }}"
+                    class="top-pill text-decoration-none">
+                    รีเฟรช
+                </a>
+            </div>
+
         </div>
 
     </header>
@@ -1270,9 +1909,9 @@
                                     @if ($game['current_phase'] === 'night')
                                     🌙
                                     @elseif ($game['current_phase'] === 'day_voting')
-                                    ⚔
+                                    🎯
                                     @else
-                                    ☀
+                                    ☀️
                                     @endif
                                 </div>
 
@@ -1511,7 +2150,11 @@
                                     {{ $player['name'] }}
 
                                     @if ($isCurrentPlayer)
-                                    <span class="you-badge">
+                                    <span class="player-you {{
+                                            $loop->index % 2 === 0
+                                            ? 'purple'
+                                            : 'blue'
+                                        }}">
                                         (คุณ)
                                     </span>
                                     @endif
@@ -1550,7 +2193,7 @@
                             @csrf
 
                             <button type="submit" class="btn-game">
-                                เริ่มช่วงพูดคุย
+                                เริ่มเกม-ช่วงพูดคุย
                             </button>
 
                         </form>
@@ -1561,79 +2204,87 @@
 
 
                     {{-- day voting --}}
-                    @if ($game['current_phase'] === 'day_voting')
+                    @if ($game['can_vote'])
 
-                    <div class="section-card">
+                    <form method="POST" action="{{ route('games.vote', [
+                        'code' => $game['room_code'],
+                    ]) }}">
 
-                        <div class="action-card">
+                        @csrf
 
-                            <div class="action-header">
-                                <div>
-                                    <div class="action-title">
-                                        ช่วงโหวต — รอบ {{ $game['current_round'] }}
-                                    </div>
-                                    <div class="phase-round">
-                                        การโหวตครั้งที่ {{ $game['ballot_number'] }}
-                                    </div>
-                                </div>
+                        <input type="hidden" name="expected_end_time" value="{{ $game['phase_end_time'] }}">
 
-                                <div class="action-icon">🗳️</div>
-                            </div>
+                        <div class="action-description">
+                            เลือกผู้เล่นที่คุณต้องการโหวตออก
+                        </div>
 
-                            @if ($game['ballot_number'] === 2)
-                            <div class="alert-game warning">
-                                คะแนนครั้งแรกเสมอ จึงเปิดโหวตใหม่อีก 1 ครั้ง
-                            </div>
-                            @endif
+                        <div class="form-group">
 
-                            @if ($game['can_vote'])
+                            <div class="vote-target-list" id="vote-target-list">
 
-                            <form method="POST" action="{{ route('games.vote', [
-                                'code' => $game['room_code'],
-                            ]) }}">
+                                @foreach ($game['players'] as $player)
 
-                                @csrf
+                                @if ($player['player_uuid'] !== session('player_uuid'))
 
-                                <input type="hidden" name="expected_end_time" value="{{ $game['phase_end_time'] }}">
+                                <button type="button"
+                                    class="vote-target-card {{ $game['my_vote'] === $player['player_uuid'] ? 'selected' : '' }}"
+                                    data-player-uuid="{{ $player['player_uuid'] }}">
 
-                                <div class="action-description">
-                                    เลือกผู้เล่นที่คุณต้องการโหวตออก
-                                </div>
+                                    <span class="vote-target-avatar">
+                                        {{ mb_substr($player['name'], 0, 1) }}
+                                    </span>
 
-                                <div class="form-group">
-                                    <label class="info-label">
-                                        เลือกผู้เล่นที่ต้องการโหวต
-                                    </label>
+                                    <span class="vote-target-info">
 
-                                    <select name="target_uuid" class="game-select" required>
-                                        <option value="">เลือกผู้เล่น</option>
-
-                                        @foreach ($game['players'] as $player)
-                                        @if ($player['is_alive'] && !$player['has_left'])
-                                        <option value="{{ $player['player_uuid'] }}" @selected(
-                                            $game['my_vote']===$player['player_uuid'] )>
+                                        <span class="vote-target-name">
                                             {{ $player['name'] }}
-                                        </option>
-                                        @endif
-                                        @endforeach
-                                    </select>
-                                </div>
+                                        </span>
 
-                                <button type="submit" class="btn-game vote-button">
-                                    ยืนยันโหวต
+                                        <span class="vote-target-status">
+                                            มีชีวิต
+                                        </span>
+
+                                    </span>
+
+                                    <span class="vote-target-check">
+                                        ✓
+                                    </span>
+
                                 </button>
 
-                            </form>
+                                @endif
 
-                            @else
+                                @endforeach
 
-                            <div class="alert-game">
-                                ตอนนี้คุณไม่สามารถโหวตได้
                             </div>
 
-                            @endif
+                            <input type="hidden" name="target_uuid" id="vote-target" value="{{ $game['my_vote'] }}"
+                                required>
 
                         </div>
+
+                        <button type="submit" class="btn-game vote-button">
+
+                            @if ($game['my_vote'] !== null)
+                            เปลี่ยนโหวต
+                            @else
+                            ยืนยันโหวต
+                            @endif
+
+                        </button>
+
+                    </form>
+
+                    @else
+                    <div class="alert-game">
+
+                        @if ($game['my_vote'] !== null)
+                        คุณโหวต
+                        {{ collect($game['players'])->firstWhere('player_uuid', $game['my_vote'])['name'] ?? 'ผู้เล่น' }}
+                        แล้ว
+                        @else
+                        ตอนนี้คุณไม่สามารถโหวตได้
+                        @endif
 
                     </div>
 
@@ -1731,7 +2382,7 @@
 
                             <input type="hidden" name="expected_end_time" value="{{ $game['phase_end_time'] }}">
 
-                            <button type="submit" class="btn-game">
+                            <button type="submit" class="btn-gamee">
                                 ตรวจเวลาจบช่วงพูดคุย
                             </button>
 
@@ -1758,7 +2409,7 @@
 
                             <input type="hidden" name="expected_end_time" value="{{ $game['phase_end_time'] }}">
 
-                            <button type="submit" class="btn-secondary-game">
+                            <button type="submit" class="btn-gamee">
                                 ตรวจเวลาจบช่วงโหวต
                             </button>
 
@@ -1805,92 +2456,127 @@
                                         เลือกเป้าหมายคืนนี้
                                     </label>
 
-                                    <select name="target_uuid" class="game-select" required>
-
-                                        <option value="">
-                                            เลือกผู้เล่น
-                                        </option>
+                                    <div class="vote-target-list" id="werewolf-target-list">
 
                                         @foreach ($game['werewolf_targets'] as $target)
 
-                                        <option value="{{ $target['player_uuid'] }}" @selected(
-                                            $game['my_night_target']===$target['player_uuid'] )>
-                                            {{ $target['name'] }}
-                                        </option>
+                                        <button type="button"
+                                            class="vote-target-card {{ $game['my_night_target'] === $target['player_uuid'] ? 'selected' : '' }}"
+                                            data-player-uuid="{{ $target['player_uuid'] }}">
+
+                                            <span class="vote-target-avatar">
+                                                {{ mb_substr($target['name'], 0, 1) }}
+                                            </span>
+
+                                            <span class="vote-target-info">
+
+                                                <span class="vote-target-name">
+                                                    {{ $target['name'] }}
+                                                </span>
+
+                                                <span class="vote-target-status">
+                                                    มีชีวิต
+                                                </span>
+
+                                            </span>
+
+                                            <span class="vote-target-check">
+                                                ✓
+                                            </span>
+
+                                        </button>
 
                                         @endforeach
 
-                                    </select>
+                                    </div>
+
+                                    <button type="submit" class="btn-game">
+                                        ยืนยันเป้าหมาย
+                                    </button>
+
+                                    <input type="hidden" name="target_uuid" id="werewolf-target"
+                                        value="{{ $game['my_night_target'] }}" required>
 
                                 </div>
 
-                                <button type="submit" class="btn-game">
-                                    ยืนยันเป้าหมาย
-                                </button>
+                                @endif
 
-                            </form>
+                                @if ($game['my_role'] === 'seer')
 
-                            @endif
+                                @if ($game['can_seer_act'])
 
+                                <form method="POST" action="{{ route('games.seer-action', [
+                'code' => $game['room_code'],
+            ]) }}">
 
-                            @if ($game['my_role'] === 'seer')
+                                    @csrf
 
-                            <div class="mt-3">
+                                    <input type="hidden" name="expected_end_time" value="{{ $game['phase_end_time'] }}">
 
-                                <div class="phase-round mb-2">
-                                    ใช้สิทธิ์ตรวจแล้ว
-                                    {{ $game['my_seer_checks_used'] }}
-                                    ครั้ง /
-                                    {{ $game['my_seer_checks_limit'] ?? 'ไม่จำกัด' }}
+                                    <div class="mb-2">
+
+                                        <label class="info-label">
+                                            เลือกผู้เล่นที่คุณจะตรวจ
+                                        </label>
+
+                                        <div class="vote-target-list" id="seer-target-list">
+
+                                            @foreach ($game['seer_targets'] as $target)
+
+                                            @if ($target['player_uuid'] === session('player_uuid'))
+                                            @continue
+                                            @endif
+
+                                            <button type="button"
+                                                class="vote-target-card {{ $game['my_night_target'] === $target['player_uuid'] ? 'selected' : '' }}"
+                                                data-player-uuid="{{ $target['player_uuid'] }}">
+
+                                                <span class="vote-target-avatar">
+                                                    {{ mb_substr($target['name'], 0, 1) }}
+                                                </span>
+
+                                                <span class="vote-target-info">
+
+                                                    <span class="vote-target-name">
+                                                        {{ $target['name'] }}
+                                                    </span>
+
+                                                    <span class="vote-target-status">
+                                                        มีชีวิต
+                                                    </span>
+
+                                                </span>
+
+                                                <span class="vote-target-check">
+                                                    ✓
+                                                </span>
+
+                                            </button>
+
+                                            @endforeach
+
+                                        </div>
+
+                                        <button type="submit" class="btn-game">
+                                            ยืนยันการตรวจ
+                                        </button>
+
+                                        <input type="hidden" name="target_uuid" id="seer-target"
+                                            value="{{ $game['my_night_target'] }}" required>
+
+                                    </div>
+
+                                </form>
+
+                                @else
+
+                                <div class="phase-round mt-2">
+                                    🔮 คุณได้ตรวจสอบในคืนนี้แล้ว
                                 </div>
 
-                            </div>
+                                @endif
 
-                            @endif
-
-
-                            @if ($game['can_seer_act'])
-
-                            <form method="POST" action="{{ route('games.seer-action', [
-                                        'code' => $game['room_code'],
-                                    ]) }}">
-
-                                @csrf
-
-                                <input type="hidden" name="expected_end_time" value="{{ $game['phase_end_time'] }}">
-
-                                <div class="mb-2">
-
-                                    <label class="info-label">
-                                        เลือกผู้เล่นที่จะตรวจ
-                                    </label>
-
-                                    <select name="target_uuid" class="game-select" required>
-
-                                        <option value="">
-                                            เลือกผู้เล่น
-                                        </option>
-
-                                        @foreach ($game['seer_targets'] as $target)
-
-                                        <option value="{{ $target['player_uuid'] }}" @selected(
-                                            $game['my_night_target']===$target['player_uuid'] )>
-                                            {{ $target['name'] }}
-                                        </option>
-
-                                        @endforeach
-
-                                    </select>
-
-                                </div>
-
-                                <button type="submit" class="btn-game">
-                                    ยืนยันการตรวจ
-                                </button>
-
-                            </form>
-
-                            @endif
+                                @endif
 
                         </div>
 
@@ -1928,7 +2614,7 @@
 
                         @else
 
-                        <div>
+                        <div class="even">
                             คืนนี้ไม่มีผู้เสียชีวิตจากหมาป่า
                         </div>
 
@@ -2004,7 +2690,7 @@
 
                             <input type="hidden" name="expected_end_time" value="{{ $game['phase_end_time'] }}">
 
-                            <button type="submit" class="btn-secondary-game">
+                            <button type="submit" class="btn-gamee">
                                 ตรวจเวลาจบกลางคืน
                             </button>
 
@@ -2112,22 +2798,16 @@
                     <div class="footer-actions">
 
                         <form method="POST" action="{{ route('games.leave', [
-                                'code' => $game['room_code'],
-                            ]) }}" onsubmit="return confirm('ออกถาวรจากเกมนี้? คุณจะกลับเข้าห้องเดิมไม่ได้');">
-
+                            'code' => $game['room_code'],
+                                ]) }}" id="leave-game-form">
                             @csrf
 
-                            <div class="footer-actions">
-                                <button type="submit" class="btn-secondary-game">
-                                    ออกจากเกมถาวร
-                                </button>
-                            </div>
-
+                            <button type="button" id="leave-game-button" class="btn-secondary-game">
+                                ออกจากเกม
+                            </button>
                         </form>
 
                     </div>
-
-                </div>
 
             </section>
 
@@ -2150,8 +2830,7 @@
             && !$currentPlayer['has_left'];
             @endphp
 
-            <aside class="side-panel" id="chat-panel" data-chat-url="" data-chat-store-url=""
-                data-player-name="{{ $currentPlayer['name'] ?? '' }}">
+            <aside class="side-panel" id="chat-panel">
 
                 <div class="side-header">
 
@@ -2172,29 +2851,24 @@
 
 
                 <div class="chat-toolbar">
-
                     <div class="chat-channels">
 
                         <button type="button" class="chat-channel active" data-chat-channel="all">
-                            ALL
+                            แชตรวม
                         </button>
 
                         @if ($canUseWerewolfChat)
                         <button type="button" class="chat-channel werewolf" data-chat-channel="werewolf">
-                            🐺 WEREWOLF
-                        </button>
-                        @endif
-
-                        @if ($canUseDeadChat)
-                        <button type="button" class="chat-channel dead" data-chat-channel="dead">
-                            💀 DEAD
+                            หมาป่า
                         </button>
                         @endif
 
                     </div>
 
+                    <button type="button" id="chat-refresh" class="chat-refresh">
+                        ↻
+                    </button>
                 </div>
-
 
                 <div id="chat-messages" class="chat-messages" aria-live="polite">
 
@@ -2205,19 +2879,17 @@
                 </div>
 
 
-                <div id="chat-status" class="chat-status">
-                    กำลังเชื่อมต่อห้องแชต...
-                </div>
+                <div id="chat-feedback" class="chat-status" aria-live="polite"></div>
 
 
                 <div class="chat-compose">
 
                     <form id="chat-form" class="chat-form">
 
-                        <input id="chat-input" class="chat-input" type="text" name="message" maxlength="500"
+                        <input id="chat-message" class="chat-input" type="text" name="message" maxlength="500"
                             autocomplete="off" placeholder="พิมพ์ข้อความ...">
 
-                        <button id="chat-send" class="chat-send" type="submit">
+                        <button id="chat-submit" class="chat-send" type="submit">
                             ส่ง
                         </button>
 
@@ -2231,285 +2903,60 @@
 
     </main>
 
+    <div id="leave-game-modal" class="game-modal">
+        <div class="game-modal-card">
 
+            <div class="game-modal-icon">
+                ⚠️
+            </div>
 
-    {{-- chat --}}
+            <h3 class="game-modal-title">
+                ออกจากเกม?
+            </h3>
+
+            <p class="game-modal-text">
+                หากออกจากเกมนี้ คุณจะไม่สามารถกลับเข้าห้องเดิมได้
+            </p>
+
+            <div class="game-modal-actions">
+                <button type="button" id="leave-game-cancel" class="game-modal-btn game-modal-btn-cancel">
+                    ยกเลิก
+                </button>
+
+                <button type="button" id="leave-game-confirm" class="game-modal-btn game-modal-btn-confirm">
+                    ออกจากเกม
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- popup --}}
     <script>
-    (() => {
-        const chatPanel = document.getElementById('chat-panel');
+    const leaveGameForm = document.getElementById('leave-game-form');
+    const leaveGameButton = document.getElementById('leave-game-button');
 
-        if (!chatPanel) {
-            return;
+    const leaveGameModal = document.getElementById('leave-game-modal');
+    const leaveGameCancel = document.getElementById('leave-game-cancel');
+    const leaveGameConfirm = document.getElementById('leave-game-confirm');
+
+    leaveGameButton.addEventListener('click', () => {
+        leaveGameModal.classList.add('show');
+    });
+
+    leaveGameCancel.addEventListener('click', () => {
+        leaveGameModal.classList.remove('show');
+    });
+
+    leaveGameConfirm.addEventListener('click', () => {
+        leaveGameForm.submit();
+    });
+
+    leaveGameModal.addEventListener('click', (event) => {
+        if (event.target === leaveGameModal) {
+            leaveGameModal.classList.remove('show');
         }
-
-        const chatMessages = document.getElementById('chat-messages');
-        const chatStatus = document.getElementById('chat-status');
-        const chatForm = document.getElementById('chat-form');
-        const chatInput = document.getElementById('chat-input');
-        const chatSend = document.getElementById('chat-send');
-        const csrfToken = document
-            .querySelector('meta[name="csrf-token"]')
-            ?.getAttribute('content');
-
-        const chatUrl = chatPanel.dataset.chatUrl;
-        const chatStoreUrl = chatPanel.dataset.chatStoreUrl;
-        const currentPlayerName = chatPanel.dataset.playerName;
-
-        let currentChannel = 'all';
-        let isLoading = false;
-        let isSending = false;
-        let pollTimer = null;
-
-        function setStatus(message, isError = false) {
-            chatStatus.textContent = message;
-            chatStatus.classList.toggle('error', isError);
-        }
-
-        function isNearBottom() {
-            return (
-                chatMessages.scrollHeight -
-                chatMessages.scrollTop -
-                chatMessages.clientHeight
-            ) < 80;
-        }
-
-        function scrollToBottom() {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function formatTime(value) {
-            if (!value) {
-                return '';
-            }
-
-            const date = new Date(value);
-
-            if (Number.isNaN(date.getTime())) {
-                return '';
-            }
-
-            return date.toLocaleTimeString('th-TH', {
-                hour: '2-digit',
-                minute: '2-digit',
-            });
-        }
-
-        function renderMessages(messages) {
-            const shouldScroll = isNearBottom();
-
-            chatMessages.replaceChildren();
-
-            if (!messages.length) {
-                const empty = document.createElement('div');
-                empty.className = 'chat-empty';
-                empty.textContent =
-                    'ยังไม่มีข้อความในช่องนี้\\nเริ่มบทสนทนาได้เลย';
-                chatMessages.appendChild(empty);
-                return;
-            }
-
-            messages.forEach((item) => {
-                const row = document.createElement('div');
-                row.className = 'chat-message-row';
-
-                if (
-                    item.sender &&
-                    item.sender.name === currentPlayerName
-                ) {
-                    row.classList.add('mine');
-                }
-
-                const meta = document.createElement('div');
-                meta.className = 'chat-message-meta';
-
-                const name = document.createElement('span');
-                name.className = 'chat-message-name';
-                name.textContent = item.sender?.name ?? 'ผู้เล่น';
-
-                const time = document.createElement('span');
-                time.className = 'chat-message-time';
-                time.textContent = formatTime(item.created_at);
-
-                meta.appendChild(name);
-                meta.appendChild(time);
-
-                const bubble = document.createElement('div');
-                bubble.className = 'chat-message-bubble';
-
-                // use textContent so chat messages cannot inject HTML
-                bubble.textContent = item.message ?? '';
-
-                row.appendChild(meta);
-                row.appendChild(bubble);
-                chatMessages.appendChild(row);
-            });
-
-            if (shouldScroll) {
-                scrollToBottom();
-            }
-        }
-
-        async function loadMessages() {
-            if (isLoading) {
-                return;
-            }
-
-            isLoading = true;
-
-            try {
-
-                if (chatUrl === '') {
-                    return;
-                }
-
-                const url =
-                    `${chatUrl}?channel=${encodeURIComponent(currentChannel)}`;
-
-                if (chatStoreUrl === '') {
-                    return;
-                }
-
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                    },
-                    cache: 'no-store',
-                });
-
-                if (!response.ok) {
-                    throw new Error(
-                        `โหลดแชตไม่สำเร็จ (${response.status})`
-                    );
-                }
-
-                const data = await response.json();
-
-                renderMessages(
-                    Array.isArray(data.messages) ?
-                    data.messages : []
-                );
-
-                setStatus(
-                    `ช่อง ${currentChannel.toUpperCase()}`
-                );
-            } catch (error) {
-                setStatus(
-                    error.message || 'โหลดแชตไม่สำเร็จ',
-                    true
-                );
-            } finally {
-                isLoading = false;
-            }
-        }
-
-        async function sendMessage(message) {
-            if (isSending) {
-                return;
-            }
-
-            isSending = true;
-            chatSend.disabled = true;
-
-            try {
-                const body = new URLSearchParams();
-
-                body.set('channel', currentChannel);
-                body.set('message', message);
-
-                const response = await fetch(
-                    chatStoreUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        body,
-                    }
-                );
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    const validationMessage =
-                        data?.errors?.message?. [0];
-
-                    throw new Error(
-                        validationMessage ||
-                        data?.message ||
-                        `ส่งข้อความไม่สำเร็จ (${response.status})`
-                    );
-                }
-
-                chatInput.value = '';
-
-                await loadMessages();
-
-                chatInput.focus();
-            } catch (error) {
-                setStatus(
-                    error.message || 'ส่งข้อความไม่สำเร็จ',
-                    true
-                );
-            } finally {
-                isSending = false;
-                chatSend.disabled = false;
-            }
-        }
-
-        document
-            .querySelectorAll('[data-chat-channel]')
-            .forEach((button) => {
-                button.addEventListener('click', () => {
-                    const channel =
-                        button.dataset.chatChannel;
-
-                    if (!channel || channel === currentChannel) {
-                        return;
-                    }
-
-                    currentChannel = channel;
-
-                    document
-                        .querySelectorAll('[data-chat-channel]')
-                        .forEach((item) => {
-                            item.classList.toggle(
-                                'active',
-                                item.dataset.chatChannel === channel
-                            );
-                        });
-
-                    loadMessages();
-                });
-            });
-
-        chatForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-
-            const message = chatInput.value.trim();
-
-            if (message === '') {
-                chatInput.focus();
-                return;
-            }
-
-            sendMessage(message);
-        });
-
-        loadMessages();
-
-        pollTimer = setInterval(
-            loadMessages,
-            2500
-        );
-
-        window.addEventListener('beforeunload', () => {
-            if (pollTimer !== null) {
-                clearInterval(pollTimer);
-            }
-        });
-    })();
+    });
     </script>
 
     {{-- timer --}}
@@ -2610,6 +3057,133 @@
     </script>
 
     @endif
+
+    {{-- seer action --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        const targetInput = document.getElementById('seer-target');
+        const targetList = document.getElementById('seer-target-list');
+
+        if (!targetInput || !targetList) {
+            return;
+        }
+
+        const cards = targetList.querySelectorAll('.vote-target-card');
+
+        cards.forEach((card) => {
+
+            card.addEventListener('click', () => {
+
+                // เก็บคนที่เลือก
+                targetInput.value = card.dataset.playerUuid;
+
+                // เอา selected ออกจากทุกการ์ด
+                cards.forEach((item) => {
+                    item.classList.remove('selected');
+                });
+
+                // เพิ่ม selected ให้การ์ดที่กด
+                card.classList.add('selected');
+            });
+
+        });
+
+    });
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const voteTargetList = document.getElementById('vote-target-list');
+        const voteTargetInput = document.getElementById('vote-target');
+
+        if (!voteTargetList || !voteTargetInput) {
+            return;
+        }
+
+        const cards = voteTargetList.querySelectorAll('.vote-target-card');
+
+        cards.forEach(card => {
+
+            card.addEventListener('click', function() {
+
+                // ยกเลิกคนที่เลือกก่อนหน้า
+                cards.forEach(item => {
+                    item.classList.remove('selected');
+                });
+
+                // เลือกคนนี้
+                this.classList.add('selected');
+
+                // ส่ง UUID เข้า hidden input
+                voteTargetInput.value = this.dataset.playerUuid;
+
+            });
+
+        });
+
+    });
+    </script>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const voteTargetList = document.getElementById('vote-target-list');
+        const voteTargetInput = document.getElementById('vote-target');
+
+        if (!voteTargetList || !voteTargetInput) {
+            return;
+        }
+
+        const cards = voteTargetList.querySelectorAll('.vote-target-card');
+
+        cards.forEach(card => {
+
+            card.addEventListener('click', function() {
+
+                cards.forEach(item => {
+                    item.classList.remove('selected');
+                });
+
+                this.classList.add('selected');
+
+                voteTargetInput.value = this.dataset.playerUuid;
+
+            });
+
+        });
+
+    });
+    </script>
+
+
+    <script>
+    const werewolfTargetList = document.getElementById('werewolf-target-list');
+    const werewolfTargetInput = document.getElementById('werewolf-target');
+
+    if (werewolfTargetList && werewolfTargetInput) {
+
+        const cards = werewolfTargetList.querySelectorAll('.vote-target-card');
+
+        cards.forEach(card => {
+
+            card.addEventListener('click', function() {
+
+                cards.forEach(item => {
+                    item.classList.remove('selected');
+                });
+
+                this.classList.add('selected');
+
+                werewolfTargetInput.value = this.dataset.playerUuid;
+
+            });
+
+        });
+    }
+    </script>
 
 </body>
 

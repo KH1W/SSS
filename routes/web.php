@@ -3,13 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\GameController;
-
+use App\Http\Controllers\GameBroadcastAuthController;
+use App\Http\Controllers\ChatController;
 
 Route::view('/', 'welcome')->name('home');
-
-
-// flow = create room by ../room-test  to create room
-// to join in another tab ../room-test/{code from created room} 
 
 // enter name in form to create room
 Route::get('/room-test', [RoomController::class, 'index'])
@@ -100,6 +97,20 @@ Route::post(
     '/rooms/{code}/game/finish-night',
     [GameController::class, 'finishNight']
 )->name('games.finish-night');
+
+// broadcast
+Route::post('/game-broadcast/auth', GameBroadcastAuthController::class)
+    ->middleware('throttle:60,1')
+    ->name('games.broadcast-auth');
+
+Route::get('/rooms/{code}/chat', [ChatController::class, 'index'])
+    ->middleware('throttle:120,1')
+    ->name('rooms.chat.index');
+
+Route::post('/rooms/{code}/chat', [ChatController::class, 'store'])
+    ->middleware('throttle:30,1')
+    ->name('rooms.chat.store');
+
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
