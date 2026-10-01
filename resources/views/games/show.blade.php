@@ -861,6 +861,7 @@
 
     .chat-messages::-webkit-scrollbar {
         width: 4px;
+
     }
 
     .chat-messages::-webkit-scrollbar-thumb {

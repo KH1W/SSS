@@ -187,7 +187,6 @@ function connectRoom() {
             refreshChat();
         })
         .error((error) => {
-
             updateStatusColor("disconnected");
             showStatus("เชื่อมต่อห้องไม่สำเร็จ");
             console.error("Room subscription error:", error);
@@ -196,7 +195,7 @@ function connectRoom() {
         .listen(".room.updated", refreshRoom)
         .listen(".chat.updated", (event) => {
             if (event.room_code === roomCode) {
-                refreshChat();
+                refreshChat(false);
             }
         })
 
