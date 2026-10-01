@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Player;
 use App\Models\Room;
+use App\Support\RoomLock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -93,8 +94,7 @@ class RoomDatabaseService
     ): Room {
         $code = strtoupper(trim($code));
 
-        return \Illuminate\Support\Facades\Cache::store('file')
-            ->lock('room-lock:' . $code, 10)
+        return RoomLock::make($code, 10)
             ->block(3, function () use ($code, $playerName, $playerUuid) {
                 return DB::transaction(function () use (
                     $code,
@@ -169,8 +169,7 @@ class RoomDatabaseService
     {
         $code = strtoupper(trim($code));
 
-        \Illuminate\Support\Facades\Cache::store('file')
-            ->lock('room-lock:' . $code, 10)
+        RoomLock::make($code, 10)
             ->block(3, function () use ($code, $playerUuid) {
                 DB::transaction(function () use ($code, $playerUuid) {
                     $room = Room::where('room_code', $code)->first();
@@ -202,6 +201,7 @@ class RoomDatabaseService
 
                     if ($nextPlayer === null) {
                         $room->delete();
+
                         return;
                     }
 

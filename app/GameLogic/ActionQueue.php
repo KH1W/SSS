@@ -5,6 +5,7 @@ namespace App\GameLogic;
 class ActionQueue
 {
     private array $nightActions = [];
+
     private array $dayVotes = [];
 
     // ล้าง Queue เมื่อเริ่ม Phase ใหม่
@@ -21,8 +22,9 @@ class ActionQueue
         $this->nightActions[$actorId] = [
             'role' => $actorRole,
             'target_id' => $targetId,
-            'timestamp' => microtime(true)
+            'timestamp' => microtime(true),
         ];
+
         return true;
     }
 
@@ -41,6 +43,7 @@ class ActionQueue
                 $votes[] = $action['target_id'];
             }
         }
+
         return $votes;
     }
 

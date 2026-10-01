@@ -5,21 +5,22 @@ namespace App\GameLogic;
 class PhaseManager
 {
     public const PHASE_DAY_DISCUSSION = 'day_discussion';
+
     public const PHASE_DAY_VOTING = 'day_voting';
+
     public const PHASE_NIGHT = 'night';
+
     public const PHASE_GAME_OVER = 'game_over';
 
     private string $currentPhase;
-    private int $playerCount;
-    private string $difficulty;
+
     private array $config;
 
     public function __construct(int $playerCount, string $difficulty)
     {
-        $this->playerCount = $playerCount;
-        $this->difficulty = $difficulty;
+
         $this->config = DifficultyConfig::get($playerCount, $difficulty);
-        
+
         // เริ่มต้นเกมที่ Day Discussion
         $this->currentPhase = self::PHASE_DAY_DISCUSSION;
     }
@@ -58,7 +59,7 @@ class PhaseManager
     {
         // สรุปผลหมาป่าฆ่าคน
         $killedTargetId = RoleAbility::resolveNightKill($queue->getWerewolfVotes());
-        
+
         if ($killedTargetId && isset($playersData[$killedTargetId])) {
             $playersData[$killedTargetId]['is_alive'] = false;
         }
@@ -68,7 +69,7 @@ class PhaseManager
 
         return [
             'killed_player_id' => $killedTargetId,
-            'winner' => $winner
+            'winner' => $winner,
         ];
     }
 
@@ -90,7 +91,7 @@ class PhaseManager
 
         return [
             'executed_player_id' => $executedTargetId,
-            'winner' => $winner
+            'winner' => $winner,
         ];
     }
 }

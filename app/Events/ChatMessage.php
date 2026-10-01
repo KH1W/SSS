@@ -7,7 +7,6 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-
 class ChatMessage implements ShouldBroadcastNow
 {
     use Dispatchable, SerializesModels;
@@ -22,7 +21,7 @@ class ChatMessage implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel("rooms.{$this->roomId}")
+            new PrivateChannel("rooms.{$this->roomId}"),
         ];
     }
 

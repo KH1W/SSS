@@ -5,10 +5,13 @@ namespace App\GameLogic;
 class RoleAssignment
 {
     public const ROLE_WEREWOLF = 'werewolf';
+
     public const ROLE_VILLAGER = 'villager';
+
     public const ROLE_SEER = 'seer';
 
     public const TEAM_WEREWOLF = 'werewolf';
+
     public const TEAM_VILLAGER = 'villager';
 
     // เช็คทีมของ role
@@ -27,11 +30,11 @@ class RoleAssignment
         $totalPlayers = count($playerIds);
 
         if (! in_array($totalPlayers, DifficultyConfig::supportedPlayerCounts(), true)) {
-            throw new \InvalidArgumentException("รองรับแค่ 4 หรือ 6 คนเท่านั้น");
+            throw new \InvalidArgumentException('รองรับแค่ 4 หรือ 6 คนเท่านั้น');
         }
 
         if ($totalPlayers < $werewolfCount + 1) {
-            throw new \InvalidArgumentException("ผู้เล่นไม่พอใส่ role");
+            throw new \InvalidArgumentException('ผู้เล่นไม่พอใส่ role');
         }
 
         // ยัด role ลง pool (มี Seer 1 ตัว เสมอ)

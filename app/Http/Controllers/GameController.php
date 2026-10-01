@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\RoomService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -30,7 +31,7 @@ class GameController extends Controller
         Request $request,
         RoomService $roomService,
         string $code
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(
@@ -50,7 +51,7 @@ class GameController extends Controller
         Request $request,
         RoomService $roomService,
         string $code
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(
@@ -78,7 +79,7 @@ class GameController extends Controller
         Request $request,
         RoomService $roomService,
         string $code
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(
@@ -108,7 +109,7 @@ class GameController extends Controller
         Request $request,
         RoomService $roomService,
         string $code
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(
@@ -133,34 +134,34 @@ class GameController extends Controller
     }
 
     public function disconnectForDebug(
-            Request $request,
-            RoomService $roomService,
-            string $code
-        ): \Illuminate\Http\RedirectResponse {
-            $playerUuid = $request->session()->get('player_uuid');
+        Request $request,
+        RoomService $roomService,
+        string $code
+    ): RedirectResponse {
+        $playerUuid = $request->session()->get('player_uuid');
 
-            abort_unless(
-                is_string($playerUuid) && $playerUuid !== '',
-                403,
-                'ไม่พบตัวตนผู้เล่น'
-            );
+        abort_unless(
+            is_string($playerUuid) && $playerUuid !== '',
+            403,
+            'ไม่พบตัวตนผู้เล่น'
+        );
 
-            $deadline = $roomService->disconnectForDebug(
-                $code,
-                $playerUuid
-            );
+        $deadline = $roomService->disconnectForDebug(
+            $code,
+            $playerUuid
+        );
 
-            return redirect()->route('rooms.index')->with(
-                'success',
-                'บันทึกการออกแล้ว เส้นตายกลับเข้าเกม: ' . $deadline
-            );
-        }
+        return redirect()->route('rooms.index')->with(
+            'success',
+            'บันทึกการออกแล้ว เส้นตายกลับเข้าเกม: '.$deadline
+        );
+    }
 
     public function leaveGame(
         Request $request,
         RoomService $roomService,
         string $code
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(
@@ -186,7 +187,7 @@ class GameController extends Controller
         Request $request,
         RoomService $roomService,
         string $code
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(
@@ -216,7 +217,7 @@ class GameController extends Controller
         Request $request,
         RoomService $roomService,
         string $code
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(
@@ -242,11 +243,11 @@ class GameController extends Controller
             ->with('success', 'บันทึกคำสั่งตรวจแล้ว รอผลเมื่อจบกลางคืน');
     }
 
-        public function finishNight(
+    public function finishNight(
         Request $request,
         RoomService $roomService,
         string $code
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(
@@ -274,7 +275,7 @@ class GameController extends Controller
         Request $request,
         RoomService $roomService,
         string $code
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(

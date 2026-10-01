@@ -42,7 +42,7 @@ class AdvanceGamePhases extends Command
 
                         $this->error(
                             "Room {$room->room_code}: "
-                            . $exception->getMessage()
+                            .$exception->getMessage()
                         );
                     }
                 }

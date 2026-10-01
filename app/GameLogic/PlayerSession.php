@@ -9,7 +9,7 @@ class PlayerSession
     {
         $playerData['is_connected'] = false;
         $playerData['disconnected_at'] = time();
-        
+
         return true;
     }
 
@@ -20,9 +20,11 @@ class PlayerSession
             $timePassed = time() - ($playerData['disconnected_at'] ?? time());
             if ($timePassed >= $timeoutSeconds) {
                 $playerData['is_alive'] = false; // นับว่าตายทันที
+
                 return true; // หมดเวลา
             }
         }
+
         return false;
-            }
+    }
 }

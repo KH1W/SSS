@@ -2,59 +2,60 @@
 
 namespace App\Http\Controllers;
 
-
-use Illuminate\Support\Str;
-use App\Services\RoomService;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use App\Services\GameService;
+use App\Services\RoomService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class RoomController extends Controller
 {
     public function store(
-            Request $request,
-            RoomService $roomService
-        ): \Illuminate\Http\RedirectResponse {
-            $validated = $request->validate([
-                'host_name' => ['required', 'string', 'max:45'],
-                'difficulty' => ['required', 'in:easy,hard'],
-            ]);
+        Request $request,
+        RoomService $roomService
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'host_name' => ['required', 'string', 'max:45'],
+            'difficulty' => ['required', 'in:easy,hard'],
+        ]);
 
-            $room = $roomService->create(
-                $validated['host_name'],
-                $this->getPlayerUuid($request),
-                $validated['difficulty']
-            );
-
-            $request->session()->put('current_room_code', $room['code']);
-
-            return redirect()->route('rooms.show', [
-                'code' => $room['code'],
-            ]);
-        }
-
-    public function join(Request $request,RoomService $roomService,string $code): \Illuminate\Http\RedirectResponse {
-    $validated = $request->validate([
-        'player_name' => ['required', 'string', 'max:50'],
-    ]);
-
-    $room = $roomService->join(
-        $code,
-        $validated['player_name'],
-        $this->getPlayerUuid($request)
+        $room = $roomService->create(
+            $validated['host_name'],
+            $this->getPlayerUuid($request),
+            $validated['difficulty']
         );
 
-    $request->session()->put('current_room_code', $room['code']);
+        $request->session()->put('current_room_code', $room['code']);
 
-    return redirect()->route('rooms.show', ['code' => $room['code'],]);
+        return redirect()->route('rooms.show', [
+            'code' => $room['code'],
+        ]);
+    }
+
+    public function join(Request $request, RoomService $roomService, string $code): RedirectResponse
+    {
+        $validated = $request->validate([
+            'player_name' => ['required', 'string', 'max:50'],
+        ]);
+
+        $room = $roomService->join(
+            $code,
+            $validated['player_name'],
+            $this->getPlayerUuid($request)
+        );
+
+        $request->session()->put('current_room_code', $room['code']);
+
+        return redirect()->route('rooms.show', ['code' => $room['code']]);
 
     }
-    
+
     public function show(
         Request $request,
         RoomService $roomService,
         string $code
-    ): \Illuminate\View\View|\Illuminate\Http\RedirectResponse {
+    ): View|RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(
@@ -84,33 +85,33 @@ class RoomController extends Controller
     }
 
     public function leave(
-            Request $request,
-            RoomService $roomService,
-            string $code
-        ): \Illuminate\Http\RedirectResponse {
-            $playerUuid = $request->session()->get('player_uuid');
+        Request $request,
+        RoomService $roomService,
+        string $code
+    ): RedirectResponse {
+        $playerUuid = $request->session()->get('player_uuid');
 
-            abort_unless(
-                is_string($playerUuid) && $playerUuid !== '',
-                403,
-                'ไม่พบตัวตนผู้เล่น'
-            );
+        abort_unless(
+            is_string($playerUuid) && $playerUuid !== '',
+            403,
+            'ไม่พบตัวตนผู้เล่น'
+        );
 
-            $roomService->leave($code, $playerUuid);
+        $roomService->leave($code, $playerUuid);
 
-            if ($request->session()->get('current_room_code') === strtoupper($code)) {
-                $request->session()->forget('current_room_code');
-            }
-
-            return redirect('/room-test');
+        if ($request->session()->get('current_room_code') === strtoupper($code)) {
+            $request->session()->forget('current_room_code');
         }
+
+        return redirect('/room-test');
+    }
 
     public function start(
         Request $request,
         RoomService $roomService,
         GameService $gameService,
         string $code
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $playerUuid = $request->session()->get('player_uuid');
 
         abort_unless(
@@ -133,7 +134,7 @@ class RoomController extends Controller
     public function joinFromForm(
         Request $request,
         RoomService $roomService
-    ): \Illuminate\Http\RedirectResponse {
+    ): RedirectResponse {
         $request->merge([
             'code' => strtoupper(trim((string) $request->input('code', ''))),
         ]);
@@ -156,13 +157,11 @@ class RoomController extends Controller
         ]);
     }
 
-
-
     private function getPlayerUuid(Request $request): string
     {
         $playerUuid = $request->session()->get('player_uuid');
 
-        if (!$playerUuid) {
+        if (! $playerUuid) {
             $playerUuid = (string) Str::uuid();
             $request->session()->put('player_uuid', $playerUuid);
         }
@@ -173,7 +172,7 @@ class RoomController extends Controller
     public function index(
         Request $request,
         RoomService $roomService
-    ): \Illuminate\View\View {
+    ): View {
         $currentRoom = null;
         $code = $request->session()->get('current_room_code');
         $playerUuid = $request->session()->get('player_uuid');
@@ -193,6 +192,4 @@ class RoomController extends Controller
             'currentRoom' => $currentRoom,
         ]);
     }
-
-
 }

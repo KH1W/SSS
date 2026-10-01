@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\GameLogic\DifficultyConfig;
 use App\GameLogic\RoleAssignment;
 use Illuminate\Support\Str;
-use App\GameLogic\DifficultyConfig;
 
 class GameService
 {

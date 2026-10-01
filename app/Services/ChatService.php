@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Events\ChatUpdated;
 use App\Models\Room;
-use Illuminate\Support\Facades\Cache;
+use App\Support\RoomLock;
 use Illuminate\Support\Facades\DB;
 
 class ChatService
@@ -36,14 +36,14 @@ class ChatService
                 ->firstWhere('player_uuid', $uuid);
 
             abort_unless(
-                $me !== null && !($me['has_left'] ?? false),
+                $me !== null && ! ($me['has_left'] ?? false),
                 403,
                 'คุณออกจากเกมแล้ว'
             );
 
             $alive = $me['is_alive'];
 
-            if (!$alive) {
+            if (! $alive) {
                 $channels[] = 'dead';
             } elseif ($me['role'] === 'werewolf') {
                 $channels[] = 'werewolf';
@@ -63,7 +63,7 @@ class ChatService
                     $sendable[] = 'all';
                 }
 
-                if (!$alive) {
+                if (! $alive) {
                     $sendable[] = 'dead';
                 } elseif ($me['role'] === 'werewolf') {
                     $sendable[] = 'werewolf';
@@ -121,7 +121,7 @@ class ChatService
     ): void {
         $code = strtoupper(trim($code));
 
-        Cache::store('file')->lock('room-lock:' . $code, 10)
+        RoomLock::make($code, 10)
             ->block(3, function () use (
                 $code,
                 $uuid,

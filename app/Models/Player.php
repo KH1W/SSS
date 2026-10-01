@@ -24,6 +24,9 @@ class Player extends Model
         'role',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -34,6 +37,9 @@ class Player extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Room, $this>
+     */
     public function room(): BelongsTo
     {
         return $this->belongsTo(

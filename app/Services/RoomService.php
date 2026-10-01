@@ -2,30 +2,26 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
-use App\GameLogic\PhaseManager;
-use App\GameLogic\ActionQueue;
-use App\GameLogic\RoleAbility;
-use App\Models\Room;
-use Illuminate\Support\Facades\DB;
-use App\Models\VoteAction;
-use App\GameLogic\RandomEvent;
-use App\GameLogic\GameConfiguration;
-use App\GameLogic\GameEngine;
-use App\Exceptions\GameSnapshotUnavailableException;
 use App\Events\PhaseChanged;
 use App\Events\RoomUpdated;
-
+use App\Exceptions\GameSnapshotUnavailableException;
+use App\GameLogic\GameConfiguration;
+use App\GameLogic\GameEngine;
+use App\GameLogic\PhaseManager;
+use App\GameLogic\RandomEvent;
+use App\GameLogic\RoleAbility;
+use App\Models\Room;
+use App\Models\VoteAction;
+use App\Support\RoomLock;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class RoomService
 {
-
     public function __construct(
         private RoomDatabaseService $roomDatabase
     ) {}
-
 
     public function create(
         string $hostName,
@@ -68,7 +64,6 @@ class RoomService
         $this->broadcastRoomUpdated($code);
     }
 
-
     public function getRoom(string $code): array
     {
         $code = strtoupper(trim($code));
@@ -86,7 +81,7 @@ class RoomService
             $game = $record->game_snapshot;
 
             if (
-                !is_array($game)
+                ! is_array($game)
                 || ($game['game_uuid'] ?? null) !== $room['game_uuid']
             ) {
                 throw new GameSnapshotUnavailableException($code);
@@ -102,37 +97,29 @@ class RoomService
         });
     }
 
-
-    
-
     public function start(
         string $code,
         string $playerUuid,
         GameService $gameService
     ): array {
         $code = strtoupper($code);
-        $cache = Cache::store('file');
 
-        return $cache->lock('room-lock:' . $code, 5)
+        return RoomLock::make($code, 5)
             ->block(3, function () use (
-                $cache,
+
                 $code,
                 $playerUuid,
                 $gameService
             ) {
-                $key = 'room:' . $code;
+                $key = 'room:'.$code;
                 $room = $this->getRoom($code);
 
-                abort_if($room === null, 404, 'ไม่พบห้อง');
-
-                if ($playerUuid !== null) {
-                    abort_unless(
-                        collect($room['players'])
-                            ->contains('player_uuid', $playerUuid),
-                        403,
-                        'คุณไม่ได้อยู่ในห้องนี้'
-                    );
-                }
+                abort_unless(
+                    collect($room['players'])
+                        ->contains('player_uuid', $playerUuid),
+                    403,
+                    'คุณไม่ได้อยู่ในห้องนี้'
+                );
 
                 if (
                     $room['status'] !== 'waiting'
@@ -143,7 +130,7 @@ class RoomService
                     ]);
                 }
 
-                if (!in_array(count($room['players']), [4, 6], true)) {
+                if (! in_array(count($room['players']), [4, 6], true)) {
                     throw ValidationException::withMessages([
                         'room' => 'ต้องมีผู้เล่น 4 หรือ 6 คนจึงเริ่มเกมได้',
                     ]);
@@ -170,14 +157,12 @@ class RoomService
         $isMember = collect($room['players'])
             ->contains('player_uuid', $playerUuid);
 
-        if ($playerUuid !== null) {
-            abort_unless(
-                collect($room['players'])
-                    ->contains('player_uuid', $playerUuid),
-                403,
-                'คุณไม่ได้อยู่ในห้องนี้'
-            );
-        }
+        abort_unless(
+            collect($room['players'])
+                ->contains('player_uuid', $playerUuid),
+            403,
+            'คุณไม่ได้อยู่ในห้องนี้'
+        );
 
         $game = $room['game'] ?? null;
 
@@ -192,8 +177,7 @@ class RoomService
 
         if ($me['role'] === 'werewolf') {
             $werewolfTeammates = collect($game['players'])
-                ->filter(fn (array $player) =>
-                    $player['role'] === 'werewolf'
+                ->filter(fn (array $player) => $player['role'] === 'werewolf'
                     && $player['player_uuid'] !== $playerUuid
                 )
                 ->map(fn (array $player) => [
@@ -225,16 +209,15 @@ class RoomService
             }
         }
 
-
         $myVote = null;
 
         if ($game['current_phase'] === 'day_voting') {
             $votes = $this->loadDayVotes(
-                    $code,
-                    $game['current_round'],
-                    $game['players'],
-                    $game['ballot_number'] ?? 1
-                );
+                $code,
+                $game['current_round'],
+                $game['players'],
+                $game['ballot_number'] ?? 1
+            );
 
             $myVote = $votes[$playerUuid] ?? null;
         }
@@ -244,19 +227,18 @@ class RoomService
             && $game['current_phase'] === 'night'
             && $me['role'] === 'werewolf'
             && $me['is_alive']
-            && !($me['has_left'] ?? false)
+            && ! ($me['has_left'] ?? false)
             && $game['phase_end_time'] !== null
             && now()->lt(
-                \Carbon\CarbonImmutable::parse($game['phase_end_time'])
+                CarbonImmutable::parse($game['phase_end_time'])
             );
 
         $werewolfTargets = [];
 
         if ($canWerewolfAct) {
             $werewolfTargets = collect($game['players'])
-                ->filter(fn (array $player) =>
-                    $player['is_alive']
-                    && !($player['has_left'] ?? false)
+                ->filter(fn (array $player) => $player['is_alive']
+                    && ! ($player['has_left'] ?? false)
                     && $player['role'] !== 'werewolf'
                 )
                 ->map(fn (array $player) => [
@@ -275,33 +257,32 @@ class RoomService
             $game['night_actions'][$playerUuid]
         );
 
-            $seerUsed = $game['seer_checks_used'][$playerUuid] ?? 0;
-            $seerLimit = $game['config']['seer_checks_limit'] ?? 1;
+        $seerUsed = $game['seer_checks_used'][$playerUuid] ?? 0;
+        $seerLimit = $game['config']['seer_checks_limit'] ?? 1;
 
-            // ตรวจว่า Seer ใช้สิทธิ์ตรวจในคืนนี้ไปแล้วหรือยัง
-            $hasSeerActionTonight = isset(
+        // ตรวจว่า Seer ใช้สิทธิ์ตรวจในคืนนี้ไปแล้วหรือยัง
+        $hasSeerActionTonight = isset(
             $game['night_actions'][$playerUuid]
         );
 
-            $canSeerAct =
-            $game['status'] === 'in_progress'
-            && $game['current_phase'] === 'night'
-            && $me['role'] === 'seer'
-            && $me['is_alive']
-            && !($me['has_left'] ?? false)
-            && !$hasSeerActionTonight
-            && $game['phase_end_time'] !== null
-            && now()->lt(
-                \Carbon\CarbonImmutable::parse($game['phase_end_time'])
-            );
+        $canSeerAct =
+        $game['status'] === 'in_progress'
+        && $game['current_phase'] === 'night'
+        && $me['role'] === 'seer'
+        && $me['is_alive']
+        && ! ($me['has_left'] ?? false)
+        && ! $hasSeerActionTonight
+        && $game['phase_end_time'] !== null
+        && now()->lt(
+            CarbonImmutable::parse($game['phase_end_time'])
+        );
 
         $seerTargets = [];
 
         if ($canSeerAct) {
             $seerTargets = collect($game['players'])
-                ->filter(fn (array $player) =>
-                    $player['is_alive']
-                    && !($player['has_left'] ?? false)
+                ->filter(fn (array $player) => $player['is_alive']
+                    && ! ($player['has_left'] ?? false)
                 )
                 ->map(fn (array $player) => [
                     'player_uuid' => $player['player_uuid'],
@@ -310,7 +291,6 @@ class RoomService
                 ->values()
                 ->all();
         }
-
 
         $nightResult = null;
         $result = $game['night_result'] ?? null;
@@ -364,20 +344,18 @@ class RoomService
                 $game['players']
             ),
             'werewolf_teammates' => $werewolfTeammates,
-            'can_begin_discussion' =>
-                $room['host_uuid'] === $playerUuid
+            'can_begin_discussion' => $room['host_uuid'] === $playerUuid
                 && $game['status'] === 'roles_assigned',
             'phase_end_time' => $game['phase_end_time'],
             'server_time' => now()->toIso8601String(),
             'my_vote' => $myVote,
-            'can_vote' =>
-                $game['status'] === 'in_progress'
+            'can_vote' => $game['status'] === 'in_progress'
                 && $game['current_phase'] === 'day_voting'
                 && $me['is_alive']
                 && $game['phase_end_time'] !== null
                 && now()->lt(
-                \Carbon\CarbonImmutable::parse($game['phase_end_time'])
-            ),
+                    CarbonImmutable::parse($game['phase_end_time'])
+                ),
             'can_werewolf_act' => $canWerewolfAct,
             'werewolf_targets' => $werewolfTargets,
             'can_seer_act' => $canSeerAct,
@@ -399,7 +377,6 @@ class RoomService
         ];
     }
 
-
     public function findRoomForPlayer(
         string $code,
         string $playerUuid
@@ -410,7 +387,7 @@ class RoomService
             return null;
         }
 
-        if (!collect($room['players'])->contains(
+        if (! collect($room['players'])->contains(
             'player_uuid',
             $playerUuid
         )) {
@@ -428,23 +405,18 @@ class RoomService
         string $playerUuid
     ): void {
         $code = strtoupper($code);
-        $cache = Cache::store('file');
 
-        $cache->lock('room-lock:' . $code, 5)
-            ->block(3, function () use ($cache, $code, $playerUuid) {
-                $key = 'room:' . $code;
+        RoomLock::make($code, 5)
+            ->block(3, function () use ($code, $playerUuid) {
+                $key = 'room:'.$code;
                 $room = $this->getRoom($code);
 
-                abort_if($room === null, 404, 'ไม่พบห้อง');
-
-                if ($playerUuid !== null) {
-                    abort_unless(
-                        collect($room['players'])
-                            ->contains('player_uuid', $playerUuid),
-                        403,
-                        'คุณไม่ได้อยู่ในห้องนี้'
-                    );
-                }
+                abort_unless(
+                    collect($room['players'])
+                        ->contains('player_uuid', $playerUuid),
+                    403,
+                    'คุณไม่ได้อยู่ในห้องนี้'
+                );
 
                 $game = $room['game'] ?? null;
 
@@ -466,8 +438,8 @@ class RoomService
                 $game['current_phase'] = $phaseManager->getCurrentPhase();
                 $game['current_round'] = 1;
                 $game['phase_end_time'] = now()
-                ->addSeconds($game['config']['day_discussion_sec'])
-                ->toIso8601String();
+                    ->addSeconds($game['config']['day_discussion_sec'])
+                    ->toIso8601String();
 
                 $room['status'] = $game['current_phase'];
                 $room['game'] = $game;
@@ -482,19 +454,16 @@ class RoomService
         string $expectedEndTime
     ): void {
         $code = strtoupper($code);
-        $cache = Cache::store('file');
 
-        $cache->lock('room-lock:' . $code, 5)
+        RoomLock::make($code, 5)
             ->block(3, function () use (
-                $cache,
+
                 $code,
                 $playerUuid,
                 $expectedEndTime
             ) {
-                $key = 'room:' . $code;
+                $key = 'room:'.$code;
                 $room = $this->getRoom($code);
-
-                abort_if($room === null, 404, 'ไม่พบห้อง');
 
                 if ($playerUuid !== null) {
                     abort_unless(
@@ -518,7 +487,7 @@ class RoomService
                     return;
                 }
 
-                $deadline = \Carbon\CarbonImmutable::parse(
+                $deadline = CarbonImmutable::parse(
                     $game['phase_end_time']
                 );
 
@@ -551,7 +520,6 @@ class RoomService
             });
     }
 
-
     public function vote(
         string $code,
         string $playerUuid,
@@ -560,7 +528,7 @@ class RoomService
     ): void {
         $code = strtoupper(trim($code));
 
-        Cache::store('file')->lock('room-lock:' . $code, 10)
+        RoomLock::make($code, 10)
             ->block(3, function () use (
                 $code,
                 $playerUuid,
@@ -572,14 +540,12 @@ class RoomService
 
                 abort_if($game === null, 404, 'ยังไม่มีเกม');
 
-                if ($playerUuid !== null) {
                 abort_unless(
                     collect($room['players'])
                         ->contains('player_uuid', $playerUuid),
                     403,
                     'คุณไม่ได้อยู่ในห้องนี้'
                 );
-            }
 
                 if (
                     $game['phase_end_time'] === null
@@ -628,19 +594,16 @@ class RoomService
         string $expectedEndTime
     ): void {
         $code = strtoupper($code);
-        $cache = Cache::store('file');
 
-        $cache->lock('room-lock:' . $code, 5)
+        RoomLock::make($code, 5)
             ->block(3, function () use (
-                $cache,
+
                 $code,
                 $playerUuid,
                 $expectedEndTime
             ) {
-                $key = 'room:' . $code;
+                $key = 'room:'.$code;
                 $room = $this->getRoom($code);
-
-                abort_if($room === null, 404, 'ไม่พบห้อง');
 
                 $game = $room['game'] ?? null;
 
@@ -649,8 +612,8 @@ class RoomService
                 if ($playerUuid !== null) {
                     abort_unless(
                         collect($game['players'])
-                        ->filter(fn (array $player) => !($player['has_left'] ?? false))
-                        ->contains('player_uuid', $playerUuid),
+                            ->filter(fn (array $player) => ! ($player['has_left'] ?? false))
+                            ->contains('player_uuid', $playerUuid),
                         403,
                         'คุณไม่ได้อยู่ในเกมนี้'
                     );
@@ -667,13 +630,13 @@ class RoomService
                 }
 
                 if (now()->lt(
-                    \Carbon\CarbonImmutable::parse($game['phase_end_time'])
+                    CarbonImmutable::parse($game['phase_end_time'])
                 )) {
                     throw ValidationException::withMessages([
                         'game' => 'ยังไม่หมดเวลาโหวต',
                     ]);
                 }
-                // 
+                //
                 $game['day_votes'] = $this->loadDayVotes(
                     $code,
                     $game['current_round'],
@@ -701,10 +664,6 @@ class RoomService
                 }
 
                 $targetUuid = $outcome['eliminated_uuid'];
-
-                
-
-
 
                 $game['vote_result'] = [
                     'round' => $game['current_round'],
@@ -752,18 +711,18 @@ class RoomService
                     $room['status'] = $game['current_phase'];
 
                     $game['night_event'] = [
-                    'night_round' => $game['current_round'],
-                    'applies_to_round' => $game['current_round'] + 1,
-                    'event' => RandomEvent::random(
-                        count($game['players']),
-                        $game['difficulty']
-                    ),
-                    // 'event' => RandomEvent::get(
-                    //     'short_discussion',
-                    //     $game['difficulty'],
-                    //     count($game['players'])
-                    // ),
-                ];
+                        'night_round' => $game['current_round'],
+                        'applies_to_round' => $game['current_round'] + 1,
+                        'event' => RandomEvent::random(
+                            count($game['players']),
+                            $game['difficulty']
+                        ),
+                        // 'event' => RandomEvent::get(
+                        //     'short_discussion',
+                        //     $game['difficulty'],
+                        //     count($game['players'])
+                        // ),
+                    ];
                 }
 
                 $room['game'] = $game;
@@ -861,9 +820,7 @@ class RoomService
 
         });
 
-
     }
-
 
     private function loadDayVotes(
         string $code,
@@ -898,8 +855,8 @@ class RoomService
             $targetUuid = $uuidById->get($row->players_target_id);
 
             if (
-                !in_array($voterUuid, $aliveUuids, true)
-                || !in_array($targetUuid, $aliveUuids, true)
+                ! in_array($voterUuid, $aliveUuids, true)
+                || ! in_array($targetUuid, $aliveUuids, true)
             ) {
                 continue;
             }
@@ -915,9 +872,8 @@ class RoomService
         string $playerUuid
     ): string {
         $code = strtoupper($code);
-        $cache = Cache::store('file');
 
-        return $cache->lock('room-lock:' . $code, 10)
+        return RoomLock::make($code, 10)
             ->block(3, function () use ($code, $playerUuid) {
                 $room = $this->getRoom($code);
                 $game = $room['game'] ?? null;
@@ -942,8 +898,8 @@ class RoomService
 
                 // กดซ้ำต้องไม่ยืดเวลารอกลับ
                 if (
-                    !($player['is_connected'] ?? true)
-                    && !empty($player['reconnect_deadline'])
+                    ! ($player['is_connected'] ?? true)
+                    && ! empty($player['reconnect_deadline'])
                 ) {
                     return $player['reconnect_deadline'];
                 }
@@ -974,9 +930,8 @@ class RoomService
     public function leaveGame(string $code, string $playerUuid): void
     {
         $code = strtoupper(trim($code));
-        $cache = Cache::store('file');
 
-        $cache->lock('room-lock:' . $code, 10)
+        RoomLock::make($code, 10)
             ->block(3, function () use ($code, $playerUuid) {
                 $room = $this->getRoom($code);
                 $game = $room['game'] ?? null;
@@ -1007,8 +962,7 @@ class RoomService
                 // รายชื่อสมาชิกปัจจุบันไม่รวมคนออก
                 $room['players'] = array_values(array_filter(
                     $room['players'],
-                    fn (array $player) =>
-                        $player['player_uuid'] !== $playerUuid
+                    fn (array $player) => $player['player_uuid'] !== $playerUuid
                 ));
 
                 // ส่งต่อ Host ให้สมาชิกคนแรกที่เหลือ
@@ -1048,7 +1002,7 @@ class RoomService
     ): void {
         $code = strtoupper(trim($code));
 
-        Cache::store('file')->lock('room-lock:' . $code, 10)
+        RoomLock::make($code, 10)
             ->block(3, function () use (
                 $code,
                 $playerUuid,
@@ -1060,14 +1014,12 @@ class RoomService
 
                 abort_if($game === null, 404, 'ยังไม่มีเกม');
 
-                if ($playerUuid !== null) {
-                    abort_unless(
-                        collect($room['players'])
-                            ->contains('player_uuid', $playerUuid),
-                        403,
-                        'คุณไม่ได้อยู่ในห้องนี้'
-                    );
-                }
+                abort_unless(
+                    collect($room['players'])
+                        ->contains('player_uuid', $playerUuid),
+                    403,
+                    'คุณไม่ได้อยู่ในห้องนี้'
+                );
 
                 if (
                     $game['phase_end_time'] === null
@@ -1110,7 +1062,7 @@ class RoomService
     ): void {
         $code = strtoupper(trim($code));
 
-        Cache::store('file')->lock('room-lock:' . $code, 10)
+        RoomLock::make($code, 10)
             ->block(3, function () use (
                 $code,
                 $playerUuid,
@@ -1123,14 +1075,12 @@ class RoomService
                 abort_if($game === null, 404, 'ยังไม่มีเกม');
 
                 // ตรวจตัวตนจากสมาชิกปัจจุบันของห้อง
-                if ($playerUuid !== null) {
-                    abort_unless(
-                        collect($room['players'])
-                            ->contains('player_uuid', $playerUuid),
-                        403,
-                        'คุณไม่ได้อยู่ในห้องนี้'
-                    );
-                }
+                abort_unless(
+                    collect($room['players'])
+                        ->contains('player_uuid', $playerUuid),
+                    403,
+                    'คุณไม่ได้อยู่ในห้องนี้'
+                );
 
                 // ป้องกันคำสั่งจากหน้าเกมของรอบเก่า
                 if (
@@ -1173,7 +1123,7 @@ class RoomService
     ): void {
         $code = strtoupper(trim($code));
 
-        Cache::store('file')->lock('room-lock:' . $code, 10)
+        RoomLock::make($code, 10)
             ->block(3, function () use (
                 $code,
                 $playerUuid,
@@ -1203,7 +1153,7 @@ class RoomService
                 }
 
                 if (now()->lt(
-                    \Carbon\CarbonImmutable::parse($game['phase_end_time'])
+                    CarbonImmutable::parse($game['phase_end_time'])
                 )) {
                     throw ValidationException::withMessages([
                         'game' => 'ยังไม่หมดเวลากลางคืน',
@@ -1245,8 +1195,8 @@ class RoomService
                     if (
                         $actor === null
                         || $target === null
-                        || !$actor['is_alive']
-                        || !$target['is_alive']
+                        || ! $actor['is_alive']
+                        || ! $target['is_alive']
                         || ($actor['has_left'] ?? false)
                         || ($target['has_left'] ?? false)
                     ) {
@@ -1386,7 +1336,7 @@ class RoomService
     ): void {
         $code = strtoupper(trim($code));
 
-        Cache::store('file')->lock('room-lock:' . $code, 10)
+        RoomLock::make($code, 10)
             ->block(3, function () use ($code, $playerUuid) {
                 DB::transaction(function () use ($code, $playerUuid) {
                     $room = Room::where('room_code', $code)
@@ -1397,14 +1347,7 @@ class RoomService
                         ->where('player_uuid', $playerUuid)
                         ->first();
 
-                    if ($playerUuid !== null) {
-                        abort_unless(
-                            collect($room['players'])
-                                ->contains('player_uuid', $playerUuid),
-                            403,
-                            'คุณไม่ได้อยู่ในห้องนี้'
-                        );
-                    }
+                    abort_if($player === null, 403, 'คุณไม่ได้อยู่ในห้องนี้');
 
                     // คำขอซ้ำหลังออกแล้ว ไม่แก้ข้อมูลเพิ่ม
                     if ($player->has_left) {
@@ -1493,7 +1436,7 @@ class RoomService
         $expectedEndTime = $game['phase_end_time'];
 
         if (now()->lt(
-            \Carbon\CarbonImmutable::parse($expectedEndTime)
+            CarbonImmutable::parse($expectedEndTime)
         )) {
             return;
         }
@@ -1512,7 +1455,6 @@ class RoomService
                 break;
         }
     }
-
 
     // websocket
     private function phaseBroadcastState(array $game): array
@@ -1548,5 +1490,4 @@ class RoomService
             $game['players']
         );
     }
-
 }

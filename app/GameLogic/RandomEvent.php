@@ -8,12 +8,16 @@ class RandomEvent
 
     // Easy Events
     public const EVENT_EXTRA_DISCUSSION = 'extra_discussion';
+
     public const EVENT_EXTRA_VOTING_TIME = 'extra_voting_time';
+
     public const EVENT_SECOND_CHANCE = 'second_chance';
 
     // Hard Events
     public const EVENT_SHORT_DISCUSSION = 'short_discussion';
+
     public const EVENT_SHORT_VOTING_TIME = 'short_voting_time';
+
     public const EVENT_RANDOM_TIE = 'random_tie';
 
     protected static function events(): array

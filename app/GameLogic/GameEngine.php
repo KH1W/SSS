@@ -4,10 +4,8 @@ namespace App\GameLogic;
 
 class GameEngine
 {
-    private PhaseManager $phaseManager;
-    private ActionQueue $actionQueue;
     private array $players = []; // เก็บรายชื่อและสถานะผู้เล่นในห้อง
-    private ?string $winner = null;
+
     private array $snapshot = [];
 
     public function __construct(array $snapshot)
@@ -23,27 +21,25 @@ class GameEngine
             'phase_end_time',
             'winner',
         ] as $key) {
-            if (!array_key_exists($key, $snapshot)) {
+            if (! array_key_exists($key, $snapshot)) {
                 throw new \InvalidArgumentException(
                     "Snapshot ไม่มีข้อมูล {$key}"
                 );
             }
         }
 
-        if (!is_array($snapshot['players'])) {
+        if (! is_array($snapshot['players'])) {
             throw new \InvalidArgumentException(
                 'ข้อมูล players ต้องเป็น array'
             );
         }
 
         $this->snapshot = $snapshot;
-        $this->winner = $snapshot['winner'];
-        $this->actionQueue = new ActionQueue();
 
         foreach ($snapshot['players'] as $player) {
             $uuid = $player['player_uuid'] ?? null;
 
-            if (!is_string($uuid) || $uuid === '') {
+            if (! is_string($uuid) || $uuid === '') {
                 throw new \InvalidArgumentException(
                     'ข้อมูลผู้เล่นไม่มี player_uuid'
                 );
@@ -82,7 +78,7 @@ class GameEngine
 
         if (
             $actor === null
-            || !$actor['is_alive']
+            || ! $actor['is_alive']
             || ($actor['has_left'] ?? false)
         ) {
             return $error('ผู้เล่นไม่มีสิทธิ์ส่งคำสั่ง');
@@ -107,7 +103,7 @@ class GameEngine
 
         if (
             $target === null
-            || !$target['is_alive']
+            || ! $target['is_alive']
             || ($target['has_left'] ?? false)
         ) {
             return $error('ต้องเลือกผู้เล่นที่ยังอยู่ในเกมและมีชีวิต');
@@ -118,7 +114,7 @@ class GameEngine
                 return $error('เฉพาะหมาป่าเท่านั้นที่ใช้คำสั่งนี้ได้');
             }
 
-            if (!RoleAbility::canWerewolfKill(
+            if (! RoleAbility::canWerewolfKill(
                 $actor['is_alive'],
                 $target['is_alive'],
                 $target['role']
@@ -126,31 +122,31 @@ class GameEngine
                 return $error('หมาป่าเลือกหมาป่าด้วยกันไม่ได้');
             }
         }
-            if ($actionType === 'seer_check') {
+        if ($actionType === 'seer_check') {
             if ($actor['role'] !== RoleAssignment::ROLE_SEER) {
-            return $error('เฉพาะ Seer เท่านั้นที่ใช้คำสั่งนี้ได้');
+                return $error('เฉพาะ Seer เท่านั้นที่ใช้คำสั่งนี้ได้');
+            }
+
+            // Seer ตรวจได้เพียง 1 ครั้งต่อคืน
+            if (isset($this->snapshot['night_actions'][$actorId])) {
+                return $error('Seer ได้ตรวจสอบในคืนนี้แล้ว');
+            }
+
+            $used = $this->snapshot['seer_checks_used'][$actorId] ?? 0;
+            $limit = $this->snapshot['config']['seer_checks_limit'];
+
+            if (! RoleAbility::canSeerCheck(
+                $actor['is_alive'],
+                $target['is_alive'],
+                $used,
+                $limit
+            )) {
+                return $error('Seer ใช้สิทธิ์ตรวจครบแล้ว');
+            }
+
+            $this->snapshot['seer_checks_used'][$actorId] = $used + 1;
         }
 
-        // Seer ตรวจได้เพียง 1 ครั้งต่อคืน
-        if (isset($this->snapshot['night_actions'][$actorId])) {
-            return $error('Seer ได้ตรวจสอบในคืนนี้แล้ว');
-        }
-    
-        $used = $this->snapshot['seer_checks_used'][$actorId] ?? 0;
-        $limit = $this->snapshot['config']['seer_checks_limit'];
-
-        if (!RoleAbility::canSeerCheck(
-            $actor['is_alive'],
-            $target['is_alive'],
-            $used,
-            $limit
-        )) {
-        return $error('Seer ใช้สิทธิ์ตรวจครบแล้ว');
-        }
-
-        $this->snapshot['seer_checks_used'][$actorId] = $used + 1;
-    }
-        
         if ($requiredPhase === 'day_voting') {
             $this->snapshot['day_votes'][$actorId] = $targetId;
         } else {
@@ -159,13 +155,13 @@ class GameEngine
                 'target_id' => $targetId,
             ];
         }
-        
+
         return [
             'status' => 'success',
             'message' => 'บันทึกคำสั่งแล้ว',
         ];
-    
-}
+
+    }
 
     // เมื่อหมดเวลาใน Phase ปัจจุบัน ให้เปลี่ยนไป Phase ถัดไป
     // public function advancePhase(): array
@@ -205,7 +201,7 @@ class GameEngine
     // }
 
     // ยังใช้ไม่ได้ ไม่รองรับหลายระบบ จึงยังเปลี่ยน phase with phasemanager ไปก่อน
-        public function advancePhase(): array
+    public function advancePhase(): array
     {
         throw new \LogicException(
             'ให้เปลี่ยน Phase ผ่าน RoomService จนกว่าจะเชื่อมครบ'
@@ -213,11 +209,11 @@ class GameEngine
     }
 
     public function getGameState(): array
-        {
-            return $this->snapshot;
-        }
+    {
+        return $this->snapshot;
+    }
 
-        public function getRemainingSeconds(): int
+    public function getRemainingSeconds(): int
     {
         $endTime = $this->snapshot['phase_end_time'];
 
@@ -305,14 +301,13 @@ class GameEngine
             throw new \LogicException('ยังสรุปผลกลางคืนไม่ได้');
         }
 
-        $queue = new ActionQueue();
+        $queue = new ActionQueue;
 
         foreach (
-            $this->snapshot['night_actions'] ?? []
-            as $actorUuid => $action
+            $this->snapshot['night_actions'] ?? [] as $actorUuid => $action
         ) {
             if (
-                !is_array($action)
+                ! is_array($action)
                 || ($action['role'] ?? null) !== 'werewolf'
             ) {
                 continue;
@@ -320,7 +315,7 @@ class GameEngine
 
             $targetUuid = $action['target_id'] ?? null;
 
-            if (!is_string($targetUuid)) {
+            if (! is_string($targetUuid)) {
                 continue;
             }
 
@@ -337,7 +332,7 @@ class GameEngine
                 continue;
             }
 
-            if (!RoleAbility::canWerewolfKill(
+            if (! RoleAbility::canWerewolfKill(
                 $actor['is_alive'],
                 $target['is_alive'],
                 $target['role']
@@ -377,11 +372,10 @@ class GameEngine
         // $limit = $this->snapshot['config']['seer_checks_limit'];
 
         foreach (
-            $this->snapshot['night_actions'] ?? []
-            as $actorUuid => $action
+            $this->snapshot['night_actions'] ?? [] as $actorUuid => $action
         ) {
             if (
-                !is_array($action)
+                ! is_array($action)
                 || ($action['role'] ?? null) !== 'seer'
             ) {
                 continue;
@@ -389,7 +383,7 @@ class GameEngine
 
             $targetUuid = $action['target_id'] ?? null;
 
-            if (!is_string($targetUuid)) {
+            if (! is_string($targetUuid)) {
                 continue;
             }
 
@@ -409,7 +403,7 @@ class GameEngine
             $alreadyResolved = collect($results[$actorUuid] ?? [])
                 ->contains('round', $round);
 
-           if ($alreadyResolved) {
+            if ($alreadyResolved) {
                 continue;
             }
 
