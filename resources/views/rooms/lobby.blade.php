@@ -690,6 +690,81 @@
     </main>
 
     <script>
+        const copyRoomButton = document.getElementById('copy-room-btn');
+        const roomCode = document.getElementById('room-code');
+        const copyRoomIcon = document.getElementById('copy-room-icon');
+        const copyRoomText = document.getElementById('copy-room-text');
+
+        let copyResetTimer;
+
+        function copyFallback(text) {
+            const input = document.createElement('textarea');
+            input.value = text;
+            input.readOnly = true;
+            input.style.position = 'fixed';
+            input.style.opacity = '0';
+
+            document.body.appendChild(input);
+            input.select();
+            input.setSelectionRange(0, input.value.length);
+
+            try {
+                return document.execCommand('copy');
+            } finally {
+                input.remove();
+            }
+        }
+
+        copyRoomButton?.addEventListener('click', async (event) => {
+            event.preventDefault();
+
+            const code = roomCode?.textContent.trim();
+
+            if (!code) {
+                return;
+            }
+
+            let copied = false;
+
+            if (navigator.clipboard?.writeText) {
+                try {
+                    await navigator.clipboard.writeText(code);
+                    copied = true;
+                } catch {
+                    // ลองวิธีสำรองหาก Clipboard API ถูกปฏิเสธ
+                }
+            }
+
+            if (!copied) {
+                try {
+                    copied = copyFallback(code);
+                } catch {
+                    copied = false;
+                }
+            }
+
+            if (!copied) {
+                window.prompt('คัดลอกรหัสห้องนี้ด้วยตนเอง:', code);
+                return;
+            }
+
+            clearTimeout(copyResetTimer);
+
+            copyRoomButton.classList.add('copied');
+
+            if (copyRoomIcon) copyRoomIcon.textContent = '✓';
+            if (copyRoomText) copyRoomText.textContent = 'คัดลอกแล้ว';
+
+            copyResetTimer = setTimeout(() => {
+                copyRoomButton.classList.remove('copied');
+
+                if (copyRoomIcon) copyRoomIcon.textContent = '⧉';
+                if (copyRoomText) copyRoomText.textContent = 'คัดลอก';
+            }, 1500);
+        });
+    </script>
+    <!-- domain .test ไม่รองรับ navigator -->
+    <!-- <script> 
     const copyRoomButton = document.getElementById('copy-room-btn');
     const roomCode = document.getElementById('room-code');
     const copyRoomIcon = document.getElementById('copy-room-icon');
@@ -713,7 +788,7 @@
             console.error('ไม่สามารถคัดลอก Room Code ได้:', error);
         }
     });
-    </script>
+    </script> -->
 
 </body>
 

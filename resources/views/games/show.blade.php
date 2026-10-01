@@ -1998,7 +1998,8 @@
                                 @elseif ($game['status'] === 'initializing')
                                 กำลังเตรียมเกม
                                 @else
-                                {{ $game['status'] }}
+                                <!-- {{ $game['status'] }} -->
+                                กำลังดำเนินเกม
                                 @endif
                             </div>
                         </div>
