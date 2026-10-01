@@ -1,10 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\RoomController;
-use App\Http\Controllers\GameController;
-use App\Http\Controllers\GameBroadcastAuthController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\GameBroadcastAuthController;
+use App\Http\Controllers\GameController;
+use App\Http\Controllers\RoomController;
+use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
@@ -18,8 +18,7 @@ Route::post('/join-room', [RoomController::class, 'joinFromForm'])
 // get name and create room by controller
 Route::post('/rooms', [RoomController::class, 'store'])->name('rooms.store');
 
-
-//  enter name in form  
+//  enter name in form
 Route::get('/room-test/{code}', function (string $code) {
     return view('join-room-test', ['code' => $code]);
 });
@@ -27,11 +26,8 @@ Route::get('/room-test/{code}', function (string $code) {
 // get name and code to join room by controller
 Route::post('/rooms/{code}/join', [RoomController::class, 'join']);
 
-
-
 // get room info and view lobby with room info after enter name by create or join
 Route::get('/rooms/{code}', [RoomController::class, 'show'])->name('rooms.show');
-
 
 // to leave
 Route::post('/rooms/{code}/leave', [RoomController::class, 'leave'])
@@ -41,7 +37,7 @@ Route::post('/rooms/{code}/leave', [RoomController::class, 'leave'])
 Route::post('/rooms/{code}/start', [RoomController::class, 'start'])
     ->name('rooms.start');
 
-//game
+// game
 Route::get('/rooms/{code}/game', [GameController::class, 'show'])
     ->name('games.show');
 
@@ -63,13 +59,13 @@ Route::post(
     [GameController::class, 'finishVoting']
 )->name('games.finish-voting');
 
-//disconnect for debug
+// disconnect for debug
 // Route::post(
 //     '/rooms/{code}/game/debug-disconnect',
 //     [GameController::class, 'disconnectForDebug']
 // )->name('games.debug-disconnect');
 
-//le3ave
+// le3ave
 Route::post(
     '/rooms/{code}/game/leave',
     [GameController::class, 'leaveGame']
@@ -81,7 +77,7 @@ Route::post(
     [GameController::class, 'leaveUnavailableGame']
 )->name('games.leave-unavailable');
 
-//action
+// action
 Route::post(
     '/rooms/{code}/game/werewolf-action',
     [GameController::class, 'werewolfAction']
@@ -92,7 +88,7 @@ Route::post(
     [GameController::class, 'seerAction']
 )->name('games.seer-action');
 
-//fin nigth
+// fin nigth
 Route::post(
     '/rooms/{code}/game/finish-night',
     [GameController::class, 'finishNight']
@@ -110,7 +106,6 @@ Route::get('/rooms/{code}/chat', [ChatController::class, 'index'])
 Route::post('/rooms/{code}/chat', [ChatController::class, 'store'])
     ->middleware('throttle:30,1')
     ->name('rooms.chat.store');
-
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');

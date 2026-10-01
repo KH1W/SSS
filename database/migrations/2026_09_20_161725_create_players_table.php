@@ -19,7 +19,7 @@ return new class extends Migration
             $table->enum('role', ['villager', 'werewolf', 'seer'])->nullable(); // มี 3 บทบาทตาม DATABASE.md
             $table->boolean('is_alive')->default(true);
             $table->boolean('is_connected')->default(true);
-            
+
             // Foreign Key
             $table->foreignId('rooms_room_id')->constrained('rooms', 'room_id')->onDelete('cascade');
             $table->timestamps();

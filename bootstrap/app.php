@@ -1,11 +1,11 @@
 <?php
 
+use App\Exceptions\GameSnapshotUnavailableException;
+use App\Models\Room;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use App\Exceptions\GameSnapshotUnavailableException;
-use App\Models\Room;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -37,7 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     })
                     ->exists();
 
-            if (!$isMember) {
+            if (! $isMember) {
                 return response('คุณไม่ได้เป็นสมาชิกปัจจุบันของห้องนี้', 403);
             }
 

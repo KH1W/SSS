@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('phase_number')->default(1);
             $table->enum('phase_type', ['day_discussion', 'day_voting', 'night']); // ไม่ใช่ nullable แล้ว ตาม DATABASE.md
             $table->enum('action_type', ['vote_lynch', 'werewolf_kill', 'seer_check']); // ตรงตาม ENUM ใน DATABASE.md
-            
+
             // Foreign Keys
             $table->foreignId('rooms_room_id')->constrained('rooms', 'room_id')->onDelete('cascade');
             $table->foreignId('players_voter_id')->constrained('players', 'player_id')->onDelete('cascade');
