@@ -80,8 +80,21 @@ export function initRoomChat(roomCode, csrfToken, playerName) {
         list.scrollTop = list.scrollHeight;
     }
 
-    async function refresh() {
+    async function refresh(showLoading = true) {
         const currentRequest = ++requestNumber;
+
+        if (showLoading && refreshButton) {
+            refreshButton.disabled = true;
+            refreshButton.classList.add("active");
+        }
+
+        if (showLoading) {
+            list.innerHTML = `
+        <div class="chat-empty">
+            กำลังโหลดข้อความ...
+        </div>
+        `;
+        }
 
         try {
             const response = await fetch(url, {
@@ -93,9 +106,7 @@ export function initRoomChat(roomCode, csrfToken, playerName) {
             });
 
             if (!response.ok) {
-                throw new Error(
-                    `โหลดแชตไม่สำเร็จ (${response.status})`,
-                );
+                throw new Error(`โหลดแชตไม่สำเร็จ (${response.status})`);
             }
 
             const data = await response.json();
@@ -115,10 +126,22 @@ export function initRoomChat(roomCode, csrfToken, playerName) {
             } else {
                 setActiveChannel(currentChannel);
             }
+            if (showLoading) {
+                list.innerHTML = `
+        <div class="chat-empty">
+            อัปเดตข้อความแล้ว
+        </div>
+    `;
 
-            feedback.textContent = "";
-
-            render();
+                setTimeout(() => {
+                    if (currentRequest === requestNumber) {
+                        render();
+                    }
+                }, 500);
+            } else {
+                render();
+            }
+            
         } catch (error) {
             if (currentRequest !== requestNumber) {
                 return;
@@ -126,9 +149,16 @@ export function initRoomChat(roomCode, csrfToken, playerName) {
 
             channels = [];
 
-            render();
-
-            feedback.textContent = error.message;
+            list.innerHTML = `
+            <div class="chat-empty">
+                ${error.message}
+            </div>
+        `;
+        } finally {
+            if (refreshButton) {
+                refreshButton.disabled = false;
+                refreshButton.classList.remove("active");
+            }
         }
     }
 
@@ -185,7 +215,7 @@ export function initRoomChat(roomCode, csrfToken, playerName) {
 
             input.value = "";
 
-            await refresh();
+            // await refresh();
         } catch (error) {
             feedback.textContent = error.message;
         } finally {

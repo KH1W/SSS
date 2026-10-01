@@ -349,6 +349,41 @@
         opacity: 0.75;
         margin-bottom: 0.5rem;
     }
+
+    .room-code-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .copy-room-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: rgba(168, 85, 247, 0.12);
+        border: 1px solid rgba(168, 85, 247, 0.35);
+        color: #c084fc;
+        font-family: 'Kanit', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .copy-room-btn:hover {
+        background: rgba(168, 85, 247, 0.22);
+        border-color: rgba(168, 85, 247, 0.6);
+        color: #e9d5ff;
+    }
+
+    .copy-room-btn.copied {
+        background: rgba(74, 122, 102, 0.16);
+        border-color: rgba(110, 170, 143, 0.45);
+        color: #b7e4c7;
+    }
     </style>
 
 </head>
@@ -415,8 +450,17 @@
                             Room Code
                         </div>
 
-                        <div class="room-code fs-4 mt-1">
-                            {{ $room['code'] }}
+                        <div class="room-code-wrapper mt-1">
+
+                            <div class="room-code fs-4" id="room-code">
+                                {{ $room['code'] }}
+                            </div>
+
+                            <button type="button" class="copy-room-btn" id="copy-room-btn" title="คัดลอก Room Code">
+                                <span id="copy-room-icon">⧉</span>
+                                <span id="copy-room-text">คัดลอก</span>
+                            </button>
+
                         </div>
 
                     </div>
@@ -440,7 +484,26 @@
                         </div>
 
                         <div class="info-value mt-1">
+                            @switch($room['status'])
+                            @case('waiting')
+                            รอผู้เล่น
+                            @break
+
+                            @case('in_progress')
+                            กำลังเล่น
+                            @break
+
+                            @case('finished')
+                            จบเกม
+                            @break
+
+                            @case('roles_assigned')
+                            เตรียมเริ่มเกม
+                            @break
+
+                            @default
                             {{ $room['status'] }}
+                            @endswitch
                         </div>
 
                     </div>
@@ -625,6 +688,107 @@
         </div>
 
     </main>
+
+    <script>
+        const copyRoomButton = document.getElementById('copy-room-btn');
+        const roomCode = document.getElementById('room-code');
+        const copyRoomIcon = document.getElementById('copy-room-icon');
+        const copyRoomText = document.getElementById('copy-room-text');
+
+        let copyResetTimer;
+
+        function copyFallback(text) {
+            const input = document.createElement('textarea');
+            input.value = text;
+            input.readOnly = true;
+            input.style.position = 'fixed';
+            input.style.opacity = '0';
+
+            document.body.appendChild(input);
+            input.select();
+            input.setSelectionRange(0, input.value.length);
+
+            try {
+                return document.execCommand('copy');
+            } finally {
+                input.remove();
+            }
+        }
+
+        copyRoomButton?.addEventListener('click', async (event) => {
+            event.preventDefault();
+
+            const code = roomCode?.textContent.trim();
+
+            if (!code) {
+                return;
+            }
+
+            let copied = false;
+
+            if (navigator.clipboard?.writeText) {
+                try {
+                    await navigator.clipboard.writeText(code);
+                    copied = true;
+                } catch {
+                    // ลองวิธีสำรองหาก Clipboard API ถูกปฏิเสธ
+                }
+            }
+
+            if (!copied) {
+                try {
+                    copied = copyFallback(code);
+                } catch {
+                    copied = false;
+                }
+            }
+
+            if (!copied) {
+                window.prompt('คัดลอกรหัสห้องนี้ด้วยตนเอง:', code);
+                return;
+            }
+
+            clearTimeout(copyResetTimer);
+
+            copyRoomButton.classList.add('copied');
+
+            if (copyRoomIcon) copyRoomIcon.textContent = '✓';
+            if (copyRoomText) copyRoomText.textContent = 'คัดลอกแล้ว';
+
+            copyResetTimer = setTimeout(() => {
+                copyRoomButton.classList.remove('copied');
+
+                if (copyRoomIcon) copyRoomIcon.textContent = '⧉';
+                if (copyRoomText) copyRoomText.textContent = 'คัดลอก';
+            }, 1500);
+        });
+    </script>
+    <!-- domain .test ไม่รองรับ navigator -->
+    <!-- <script> 
+    const copyRoomButton = document.getElementById('copy-room-btn');
+    const roomCode = document.getElementById('room-code');
+    const copyRoomIcon = document.getElementById('copy-room-icon');
+    const copyRoomText = document.getElementById('copy-room-text');
+
+    copyRoomButton?.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(roomCode.textContent.trim());
+
+            copyRoomButton.classList.add('copied');
+            copyRoomIcon.textContent = '✓';
+            copyRoomText.textContent = 'คัดลอกแล้ว';
+
+            setTimeout(() => {
+                copyRoomButton.classList.remove('copied');
+                copyRoomIcon.textContent = '⧉';
+                copyRoomText.textContent = 'คัดลอก';
+            }, 1500);
+
+        } catch (error) {
+            console.error('ไม่สามารถคัดลอก Room Code ได้:', error);
+        }
+    });
+    </script> -->
 
 </body>
 

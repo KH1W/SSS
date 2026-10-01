@@ -861,6 +861,7 @@
 
     .chat-messages::-webkit-scrollbar {
         width: 4px;
+
     }
 
     .chat-messages::-webkit-scrollbar-thumb {
@@ -1997,7 +1998,8 @@
                                 @elseif ($game['status'] === 'initializing')
                                 กำลังเตรียมเกม
                                 @else
-                                {{ $game['status'] }}
+                                <!-- {{ $game['status'] }} -->
+                                กำลังดำเนินเกม
                                 @endif
                             </div>
                         </div>
