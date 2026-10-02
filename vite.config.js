@@ -3,7 +3,7 @@ import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
-export default defineConfig(({ command }) => ({
+export default defineConfig({
     plugins: lazyPlugins(() => [
         laravel({
             input: [
@@ -11,7 +11,7 @@ export default defineConfig(({ command }) => ({
                 'resources/js/app.js',
                 'resources/js/passkeys.js',
             ],
-            refresh: command === 'serve',
+            refresh: false,
             fonts: [
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
@@ -60,4 +60,4 @@ export default defineConfig(({ command }) => ({
             ],
         },
     },
-}));
+});
