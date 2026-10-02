@@ -4,7 +4,9 @@
     "type": "module",
     "scripts": {
         "build": "vp build",
-        "dev": "vp dev"
+        "dev": "vp dev",
+        "fast": "npm run build && php artisan optimize && php artisan view:cache && php artisan route:cache && php artisan config:cache",
+        "fresh": "php artisan optimize:clear"
     },
     "dependencies": {
         "@laravel/passkeys": "^0.2.0",

@@ -3,7 +3,7 @@ import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
     plugins: lazyPlugins(() => [
         laravel({
             input: [
@@ -11,7 +11,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/passkeys.js',
             ],
-            refresh: true,
+            refresh: command === 'serve',
             fonts: [
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
@@ -20,6 +20,31 @@ export default defineConfig({
         }),
         tailwindcss(),
     ]),
+    build: {
+        cssCodeSplit: true,
+        minify: 'esbuild',
+        sourcemap: false,
+        chunkSizeWarningLimit: 900,
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) {
+                        return;
+                    }
+
+                    if (id.includes('laravel-echo') || id.includes('pusher-js')) {
+                        return 'realtime';
+                    }
+
+                    if (id.includes('@laravel/passkeys')) {
+                        return 'passkeys';
+                    }
+
+                    return 'vendor';
+                },
+            },
+        },
+    },
     server: {
         cors: true,
         watch: {
@@ -28,9 +53,11 @@ export default defineConfig({
                 '**/.claude/**',
                 '**/.cursor/**',
                 '**/.junie/**',
-                '**/storage/framework/views/**',
+                '**/bootstrap/cache/**',
+                '**/storage/**',
                 '**/vendor/**',
+                '**/node_modules/**',
             ],
         },
     },
-});
+}));
