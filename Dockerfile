@@ -5,12 +5,12 @@ FROM php:8.3-apache-bookworm
 # เครื่องมือและ PHP extensions
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        git unzip libzip-dev libicu-dev libonig-dev \
+        git unzip supervisor libzip-dev libicu-dev libonig-dev \
         libpq-dev libsqlite3-dev \
     && docker-php-ext-install -j"$(nproc)" \
         pdo_mysql pdo_pgsql pdo_sqlite \
         mbstring intl zip bcmath pcntl opcache \
-    && a2enmod rewrite \
+    && a2enmod rewrite proxy proxy_http proxy_wstunnel \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
@@ -47,18 +47,8 @@ RUN npm ci \
     && rm -rf node_modules \
     && chown -R www-data:www-data storage bootstrap/cache
 
-# ให้ Apache เปิดเว็บจาก public ของ Laravel
-RUN printf '%s\n' \
-    '<VirtualHost *:80>' \
-    '    DocumentRoot /var/www/html/public' \
-    '    <Directory /var/www/html/public>' \
-    '        AllowOverride All' \
-    '        Require all granted' \
-    '    </Directory>' \
-    '    ErrorLog /proc/self/fd/2' \
-    '    CustomLog /proc/self/fd/1 combined' \
-    '</VirtualHost>' \
-    > /etc/apache2/sites-available/000-default.conf
+COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
+COPY docker/supervisord.conf /etc/supervisor/supervisord.conf
 
 # ปรับพอร์ตให้ตรงกับ PORT ที่ Render กำหนด
 RUN sed -i 's/\r$//' /var/www/html/docker/start.sh
