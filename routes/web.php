@@ -96,15 +96,15 @@ Route::post(
 
 // broadcast
 Route::post('/game-broadcast/auth', GameBroadcastAuthController::class)
-    ->middleware('throttle:60,1')
+    ->middleware('throttle:game-broadcast-auth')
     ->name('games.broadcast-auth');
 
 Route::get('/rooms/{code}/chat', [ChatController::class, 'index'])
-    ->middleware('throttle:120,1')
+    ->middleware('throttle:game-chat-read')
     ->name('rooms.chat.index');
 
 Route::post('/rooms/{code}/chat', [ChatController::class, 'store'])
-    ->middleware('throttle:30,1')
+    ->middleware('throttle:game-chat-send')
     ->name('rooms.chat.store');
 
 Route::middleware(['auth', 'verified'])->group(function () {

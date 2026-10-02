@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -25,6 +28,34 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        $playerKey = static function (Request $request): string {
+            $uuid = $request->session()->get('player_uuid');
+
+            if (is_string($uuid) && $uuid !== '') {
+                return 'player:'.$uuid;
+            }
+
+            return 'ip:'.$request->ip();
+        };
+
+        RateLimiter::for(
+            'game-broadcast-auth',
+            fn (Request $request) => Limit::perMinute(60)
+                ->by('broadcast:'.$playerKey($request))
+        );
+
+        RateLimiter::for(
+            'game-chat-read',
+            fn (Request $request) => Limit::perMinute(120)
+                ->by('chat-read:'.$playerKey($request))
+        );
+
+        RateLimiter::for(
+            'game-chat-send',
+            fn (Request $request) => Limit::perMinute(30)
+                ->by('chat-send:'.$playerKey($request))
+        );
 
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
