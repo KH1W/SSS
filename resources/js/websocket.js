@@ -61,7 +61,7 @@ function connectRoom() {
         wsPort: port,
         wssPort: port,
         forceTLS: secure,
-        enabledTransports: secure ? ["wss"] : ["ws"],
+        enabledTransports: ["ws", "wss"],
 
         authorizer: (channel) => ({
             authorize: async (socketId, callback) => {
