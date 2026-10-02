@@ -11,7 +11,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/passkeys.js',
             ],
-            refresh: false,
+            refresh: true,
             fonts: [
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
@@ -20,31 +20,6 @@ export default defineConfig({
         }),
         tailwindcss(),
     ]),
-    build: {
-        cssCodeSplit: true,
-        minify: 'esbuild',
-        sourcemap: false,
-        chunkSizeWarningLimit: 900,
-        rollupOptions: {
-            output: {
-                manualChunks(id) {
-                    if (!id.includes('node_modules')) {
-                        return;
-                    }
-
-                    if (id.includes('laravel-echo') || id.includes('pusher-js')) {
-                        return 'realtime';
-                    }
-
-                    if (id.includes('@laravel/passkeys')) {
-                        return 'passkeys';
-                    }
-
-                    return 'vendor';
-                },
-            },
-        },
-    },
     server: {
         cors: true,
         watch: {
@@ -53,10 +28,8 @@ export default defineConfig({
                 '**/.claude/**',
                 '**/.cursor/**',
                 '**/.junie/**',
-                '**/bootstrap/cache/**',
-                '**/storage/**',
+                '**/storage/framework/views/**',
                 '**/vendor/**',
-                '**/node_modules/**',
             ],
         },
     },
